@@ -92,7 +92,7 @@ sce <- runUMAP(sce,
                spread = 0.7,
                n_neighbors = 15)
 
-png(paste("plots/pooled/", sample_id, "_UMAP_mito.png", sep = ""), width = 700)
+png(paste("plots/pooled/", sample_id, "_mito.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "subsets_mito_percent")
 dev.off()
 
@@ -104,10 +104,10 @@ colData(sce) <- cbind(colData(sce), assignment)
 
 # Since one of the samples failed in one of the pools, it has no cells at more stringent thresholds and this
 # messes up the indexing for color. Checking for this beforehand each time keeps unassigned cells as gray.
-get_colors <- function(sce) {
-  if (length(unique(sce$assignment)) == 5) {
+get_colors <- function(assignment) {
+  if (length(unique(assignment)) == 5) {
     colors <- scale_color_manual(name = "assignment", values = c("#CA0020", "#0571B0", "#4DAC26", "#E66101", "#999999"))
-  } else if (length(unique(sce$assignment)) == 4) {
+  } else if (length(unique(assignment)) == 4) {
     colors <- scale_color_manual(name = "assignment", values = c("#0571B0", "#4DAC26", "#E66101", "#999999"))
   }
   colors
@@ -115,22 +115,22 @@ get_colors <- function(sce) {
 
 # Plot UMAP by assignment
 png(paste("plots/pooled/", sample_id, "_UMAP_assignment_90.png", sep = ""), width = 700)
-colors <- get_colors(sce); plotUMAP(sce, colour_by = "assignment") + colors
+colors <- get_colors(sce$assignment); plotUMAP(sce, colour_by = "assignment") + colors
 dev.off()
 
 # Check how assignments look on UMAP with other filtering thresholds
 mod_assignment <- subset(moderate, moderate$Barcodes %in% sce$Barcode)$Assignment
 mod_assignment[mod_assignment == "Blanks" | mod_assignment == "Multiplet"] = "Unassigned"
 colData(sce) <- cbind(colData(sce), mod_assignment)
-png(paste("plots/pooled/", sample_id, "_UMAP_assignment_85.png", se = ""), width = 700)
-colors <- get_colors(sce); plotUMAP(sce, colour_by = "mod_assignment") + colors
+png(paste("plots/pooled/", sample_id, "_UMAP_assignment_85.png", sep = ""), width = 700)
+colors <- get_colors(sce$mod_assignment); plotUMAP(sce, colour_by = "mod_assignment") + colors
 dev.off()
 
 lib_assignment <- subset(liberal, liberal$Barcodes %in% sce$Barcode)$Assignment
 lib_assignment[lib_assignment == "Blanks" | lib_assignment == "Multiplet"] = "Unassigned"
 colData(sce) <- cbind(colData(sce), lib_assignment)
-png(paste("plots/pooled/", sample_id, "_UMAP_assignment_80.png", se = ""), width = 700)
-colors <- get_colors(sce); plotUMAP(sce, colour_by = "lib_assignment") + colors
+png(paste("plots/pooled/", sample_id, "_UMAP_assignment_80.png", sep = ""), width = 700)
+colors <- get_colors(sce$lib_assignment); plotUMAP(sce, colour_by = "lib_assignment") + colors
 dev.off()
 
 
