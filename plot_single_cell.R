@@ -10,6 +10,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 
+# Valid sample ids for pilot: 2251, 2267, 2283, 2293, 2380, 2428, 2467, 2497
 sample_id <- "2497"
 
 # Load data
@@ -45,9 +46,9 @@ sce <- runUMAP(sce,
                spread = 0.7,
                n_neighbors = 15)
 
-# Plot a few basic markers. Some of these are markers of cell type (CD45 for immune,
-# ACTA2 and VIM for fibroblasts, EPCAM and PAX8 for epithelial), some of them are
-# markers of proliferation (MKI67, AURKA, and MYC).
+# Plot a few basic markers. Some of these are markers of cell type (CD45 (aka PTPRC) 
+# for immune, ACTA2 and VIM for fibroblasts, EPCAM and PAX8 for epithelial), some of
+# them are markers of proliferation (MKI67, AURKA, and MYC).
 png(paste("plots/single_cell/", sample_id, "_UMAP_PAX8.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "PAX8") + ggtitle(paste(sample_id, "PAX8"))
 dev.off()

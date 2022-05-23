@@ -8,6 +8,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 
+# We have two sets of pooled samples, named after the date they were run (12/16/21 and 1/13/22). 
 sample_id <- "12162021"
 
 # Load assignment info for each cell
@@ -21,36 +22,78 @@ table(pool$Assignment)
 # what number of cells we get at two different cutoff levels, 85% hashtag and 20% multiplet/blank (moderate), and 90%
 # hashtag and 30% multiplet/blank (liberal).
 # TODO: determine if the <0.1% requirement for all other hashtags is necessary/helpful. 
+
+mod_hashtag_prob <- 0.85
+mod_blankliplet <- 0.2
+other_hashtag_prob <- 0.001
+
+# Make new assignments based on moderate cutoffs
 moderate <- pool
-moderate[moderate$Assignment == "Unassigned" & moderate$`anti-human_Hashtag1` >= .85 & moderate$`anti-human_Hashtag2` <= 0.001 &
-           moderate$`anti-human_Hashtag3` <= 0.001 & moderate$`anti-human_Hashtag4` <= 0.001 & moderate$Blanks <= .2 &
-           moderate$Multiplet <= .2, ]$Assignment = "anti-human_Hashtag1"
-moderate[moderate$Assignment == "Unassigned" & moderate$`anti-human_Hashtag1` <= 0.001 & moderate$`anti-human_Hashtag2` >= .85 &
-           moderate$`anti-human_Hashtag3` <= 0.001 & moderate$`anti-human_Hashtag4` <= 0.001 & moderate$Blanks <= .2 &
-           moderate$Multiplet <= .2, ]$Assignment = "anti-human_Hashtag2"
-moderate[moderate$Assignment == "Unassigned" & moderate$`anti-human_Hashtag1` <= 0.001 & moderate$`anti-human_Hashtag2` <= 0.001 &
-           moderate$`anti-human_Hashtag3` >= .85 & moderate$`anti-human_Hashtag4` <= 0.001 & moderate$Blanks <= .2 &
-           moderate$Multiplet <= .2, ]$Assignment = "anti-human_Hashtag3"
-moderate[moderate$Assignment == "Unassigned" & moderate$`anti-human_Hashtag1` <= 0.001 & moderate$`anti-human_Hashtag2` <= 0.001 &
-           moderate$`anti-human_Hashtag3` <= 0.001 & moderate$`anti-human_Hashtag4` >= .85 & moderate$Blanks <= .2 &
-           moderate$Multiplet <= .2, ]$Assignment = "anti-human_Hashtag4"
+moderate[moderate$Assignment == "Unassigned" &
+           moderate$`anti-human_Hashtag1` >= mod_hashtag_prob & 
+           moderate$`anti-human_Hashtag2` <= other_hashtag_prob &
+           moderate$`anti-human_Hashtag3` <= other_hashtag_prob &
+           moderate$`anti-human_Hashtag4` <= other_hashtag_prob & 
+           moderate$Blanks <= mod_blankliplet &
+           moderate$Multiplet <= mod_blankliplet, ]$Assignment = "anti-human_Hashtag1"
+moderate[moderate$Assignment == "Unassigned" &
+           moderate$`anti-human_Hashtag1` <= other_hashtag_prob &
+           moderate$`anti-human_Hashtag2` >= mod_hashtag_prob &
+           moderate$`anti-human_Hashtag3` <= other_hashtag_prob &
+           moderate$`anti-human_Hashtag4` <= other_hashtag_prob &
+           moderate$Blanks <= mod_blankliplet &
+           moderate$Multiplet <= mod_blankliplet, ]$Assignment = "anti-human_Hashtag2"
+moderate[moderate$Assignment == "Unassigned" &
+           moderate$`anti-human_Hashtag1` <= other_hashtag_prob &
+           moderate$`anti-human_Hashtag2` <= other_hashtag_prob &
+           moderate$`anti-human_Hashtag3` >= mod_hashtag_prob &
+           moderate$`anti-human_Hashtag4` <= other_hashtag_prob &
+           moderate$Blanks <= mod_blankliplet &
+           moderate$Multiplet <= mod_blankliplet, ]$Assignment = "anti-human_Hashtag3"
+moderate[moderate$Assignment == "Unassigned" &
+           moderate$`anti-human_Hashtag1` <= other_hashtag_prob &
+           moderate$`anti-human_Hashtag2` <= other_hashtag_prob &
+           moderate$`anti-human_Hashtag3` <= other_hashtag_prob &
+           moderate$`anti-human_Hashtag4` >= mod_hashtag_prob &
+           moderate$Blanks <= mod_blankliplet &
+           moderate$Multiplet <= mod_blankliplet, ]$Assignment = "anti-human_Hashtag4"
 table(moderate$Assignment)
 
-liberal <- pool
-liberal[liberal$Assignment == "Unassigned" & liberal$`anti-human_Hashtag1` >= .8 & liberal$`anti-human_Hashtag2` <= 0.001 &
-           liberal$`anti-human_Hashtag3` <= 0.001 & liberal$`anti-human_Hashtag4` <= 0.001 & liberal$Blanks <= .3 &
-           liberal$Multiplet <= .3, ]$Assignment = "anti-human_Hashtag1"
-liberal[liberal$Assignment == "Unassigned" & liberal$`anti-human_Hashtag1` <= 0.001 & liberal$`anti-human_Hashtag2` >= .8 &
-           liberal$`anti-human_Hashtag3` <= 0.001 & liberal$`anti-human_Hashtag4` <= 0.001 & liberal$Blanks <= .3 &
-           liberal$Multiplet <= .3, ]$Assignment = "anti-human_Hashtag2"
-liberal[liberal$Assignment == "Unassigned" & liberal$`anti-human_Hashtag1` <= 0.001 & liberal$`anti-human_Hashtag2` <= 0.001 &
-           liberal$`anti-human_Hashtag3` >= .8 & liberal$`anti-human_Hashtag4` <= 0.001 & liberal$Blanks <= .3 &
-           liberal$Multiplet <= .3, ]$Assignment = "anti-human_Hashtag3"
-liberal[liberal$Assignment == "Unassigned" & liberal$`anti-human_Hashtag1` <= 0.001 & liberal$`anti-human_Hashtag2` <= 0.001 &
-           liberal$`anti-human_Hashtag3` <= 0.001 & liberal$`anti-human_Hashtag4` >= .8 & liberal$Blanks <= .3 &
-           liberal$Multiplet <= .3, ]$Assignment = "anti-human_Hashtag4"
-table(liberal$Assignment)
+lib_hashtag_prob <- 0.80
+lib_blankliplet <- 0.3
+other_hashtag_prob <- 0.001
 
+# Make new assignments based on liberal cutoffs
+liberal <- pool
+liberal[liberal$Assignment == "Unassigned" &
+          liberal$`anti-human_Hashtag1` >= lib_hashtag_prob &
+          liberal$`anti-human_Hashtag2` <= other_hashtag_prob &
+          liberal$`anti-human_Hashtag3` <= other_hashtag_prob &
+          liberal$`anti-human_Hashtag4` <= other_hashtag_prob &
+          liberal$Blanks <= lib_blanktiplet &
+          liberal$Multiplet <= lib_blanktiplet, ]$Assignment = "anti-human_Hashtag1"
+liberal[liberal$Assignment == "Unassigned" &
+          liberal$`anti-human_Hashtag1` <= other_hashtag_prob &
+          liberal$`anti-human_Hashtag2` >= lib_hashtag_prob &
+          liberal$`anti-human_Hashtag3` <= other_hashtag_prob &
+          liberal$`anti-human_Hashtag4` <= other_hashtag_prob &
+          liberal$Blanks <= lib_blanktiplet &
+          liberal$Multiplet <= lib_blanktiplet, ]$Assignment = "anti-human_Hashtag2"
+liberal[liberal$Assignment == "Unassigned" &
+          liberal$`anti-human_Hashtag1` <= other_hashtag_prob &
+          liberal$`anti-human_Hashtag2` <= other_hashtag_prob &
+          liberal$`anti-human_Hashtag3` >= lib_hashtag_prob &
+          liberal$`anti-human_Hashtag4` <= other_hashtag_prob &
+          liberal$Blanks <= lib_blanktiplet &
+          liberal$Multiplet <= lib_blanktiplet, ]$Assignment = "anti-human_Hashtag3"
+liberal[liberal$Assignment == "Unassigned" &
+          liberal$`anti-human_Hashtag1` <= other_hashtag_prob &
+          liberal$`anti-human_Hashtag2` <= other_hashtag_prob &
+          liberal$`anti-human_Hashtag3` <= other_hashtag_prob &
+          liberal$`anti-human_Hashtag4` >= lib_hashtag_prob &
+          liberal$Blanks <= lib_blanktiplet &
+          liberal$Multiplet <= lib_blanktiplet, ]$Assignment = "anti-human_Hashtag4"
+table(liberal$Assignment)
 
 # Load in total matrix and subset to only the barcodes Cellranger decided were cells
 full_matrix <- read10xCounts(paste(data_path, "Cellranger/outs/multi/count/raw_feature_bc_matrix", sep = "/"))
@@ -68,6 +111,7 @@ feature_ctrls <- list(mito = rownames(sce)[mt_genes])
 sce <- addPerCellQC(sce, subsets = feature_ctrls)
 
 # Run miQC
+set.seed(516)
 model <- mixtureModel(sce)
 plotModel(sce, model)
 p <- plotFiltering(sce, model)
@@ -87,7 +131,6 @@ sce <- logNormCounts(sce)
 sce <- runUMAP(sce,
                BNPARAM = BiocNeighbors::AnnoyParam(),
                BPPARAM = BiocParallel::MulticoreParam(),
-               ## unnecessary options,  only used to make a pretty graph
                min_dist = 0.5,  repulsion_strength = 0.25,
                spread = 0.7,
                n_neighbors = 15)
@@ -96,7 +139,7 @@ png(paste("plots/pooled/", sample_id, "_mito.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "subsets_mito_percent")
 dev.off()
 
-# Add assignment labels to sce object
+# Add assignment labels and confidence to sce object
 assignment <- pool[order(pool$Barcodes), ]
 assignment <- subset(assignment, assignment$Barcodes %in% sce$Barcode)$Assignment
 assignment[assignment == "Blanks" | assignment == "Multiplet"] <- "Unassigned"
@@ -134,7 +177,8 @@ colors <- get_colors(sce$lib_assignment); plotUMAP(sce, colour_by = "lib_assignm
 dev.off()
 
 
-# Check for basic cell type markers (CD45 for immune, EPCAM/PAX8 for epithelial, smooth muscle actin for fibroblasts)
+# Check for basic cell type markers (CD45 (aka PTPRC) for immune, EPCAM/PAX8 for 
+# epithelial, smooth muscle actin for fibroblasts)
 png(paste("plots/pooled/", sample_id, "_UMAP_CD45.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "PTPRC") + ggtitle(paste(sample_id, "CD45"))
 dev.off()
