@@ -1,8 +1,8 @@
 # Based on https://github.com/lmweber/snp-dmx-cancer, file genotype/align_index_bulk_STAR/align_index_bulk_HGSOC_17667X1.sh
-# This will need to be run once for each sample, with the sample ID manually entered in on line 5.
+# This will need to be run once for each sample, with the sample ID passed in as a parameter.
 
 # Options are 2251, 2267, 2283, 2293, 2380, 2428, 2467, 2497
-sample=2267
+sample=$1
 
 original_location=`pwd`
 cd ../../sc-cancer-hgsc/data/index
@@ -27,6 +27,7 @@ STAR \
 	--readFilesIn $tumor_location/${sample}_${SID}_R1_merged.fastq.gz  $tumor_location/${sample}_${SID}_R2_merged.fastq.gz \
 	--outFileNamePrefix $tumor_location/STAR/ \
 	--readFilesCommand gunzip -c \
-	--outSAMtype BAM SortedByCoordinate
+	--outSAMtype BAM SortedByCoordinate \
+	--quantMode GeneCounts
 
 samtools index $tumor_location/STAR/Aligned.sortedByCoord.out.bam

@@ -1,10 +1,10 @@
 # When we run cellranger multi, it splits up the bam files: one per sample with aligned reads from 
 # cells it has assigned to that sample, and one with unassigned alignments. We merge those into one
 # file for cellSNP/vireo.
-# This will need to be run once per pool of four samples, with the pool ID manually entered on line 7.
+# This will need to be run once per pool of four samples, with the pool ID passed in as a parameter.
 
 # Options are 12162021 and 01132022
-pool=01132022
+pool=$1
 
 # Get sample ids based on pool id
 if [ $pool == 12162021 ]; then

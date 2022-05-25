@@ -1,8 +1,8 @@
 # cellSNP requires a list of all barcodes used; we'll borrow this from the cellranger multi output.
-# This will need to be run once per pool of four samples, with the pool ID manually entered on line 4.
+# This will need to be run once per pool of four samples, with the pool ID passed in as a parameter.
 
 # Options are 12162021 and 01132022
-pool=01132022
+pool=$1
 
 original_location=`pwd`
 cd ../../sc-cancer-hgsc/data/pooled_tumors/${pool}

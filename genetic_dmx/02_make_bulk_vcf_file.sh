@@ -1,8 +1,8 @@
 # Based on https://github.com/lmweber/snp-dmx-cancer, file genotype/genotype_bulk_bcftools/genotype_bulk_HGSOC_bcftools.sh
-# This will need to be run once per pool of four samples, with the pool ID manually entered on line 5.
+# This will need to be run once per pool of four samples, with the pool ID passed in as a parameter.
 
 # Options are 12162021 and 01132022
-pool=12162021
+pool=$1
 
 # Get sample ids based on pool id
 if [ $pool == 12162021 ]; then
