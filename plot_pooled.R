@@ -1,4 +1,5 @@
-# A first look at the pooled data and the hash demultiplexing done with cellranger multi.
+# A first look at the pooled data from our pilot samples. We will try separating these out by
+# donor using both hashing demultiplexing and genetic demultiplexing.
 
 suppressPackageStartupMessages({
   library(DropletUtils)
@@ -9,98 +10,18 @@ suppressPackageStartupMessages({
 })
 
 # We have two sets of pooled samples, named after the date they were run (12/16/21 and 1/13/22). 
-sample_id <- "12162021"
+sample_id <- "01132022"
 
-# Load assignment info for each cell
+# Load hashing demultiplexing assignment info to get barcodes to keep
 data_path <- normalizePath(paste("~/Documents/scRNA/sc-cancer-hgsc/data/pooled_tumors", sample_id, sep = "/"))
-pool <- fread(paste(data_path, "Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv", sep = "/"))
-table(pool$Assignment)
-
-# Based on this assignment confidence table, the default cutoff for cellranger multi is that it only assigns a cell if
-# it has >90% probability of belonging to a given hashtag, <10% probability of being a multiplet, and <10% probability
-# of being a blank. Based on a manual look at the assignment table, this seems unnecessarily stringent. Here we test
-# what number of cells we get at two different cutoff levels, 85% hashtag and 20% multiplet/blank (moderate), and 90%
-# hashtag and 30% multiplet/blank (liberal).
-# TODO: determine if the <0.1% requirement for all other hashtags is necessary/helpful. 
-
-mod_hashtag_prob <- 0.85
-mod_blankliplet <- 0.2
-other_hashtag_prob <- 0.001
-
-# Make new assignments based on moderate cutoffs
-moderate <- pool
-moderate[moderate$Assignment == "Unassigned" &
-           moderate$`anti-human_Hashtag1` >= mod_hashtag_prob & 
-           moderate$`anti-human_Hashtag2` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag3` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag4` <= other_hashtag_prob & 
-           moderate$Blanks <= mod_blankliplet &
-           moderate$Multiplet <= mod_blankliplet, ]$Assignment = "anti-human_Hashtag1"
-moderate[moderate$Assignment == "Unassigned" &
-           moderate$`anti-human_Hashtag1` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag2` >= mod_hashtag_prob &
-           moderate$`anti-human_Hashtag3` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag4` <= other_hashtag_prob &
-           moderate$Blanks <= mod_blankliplet &
-           moderate$Multiplet <= mod_blankliplet, ]$Assignment = "anti-human_Hashtag2"
-moderate[moderate$Assignment == "Unassigned" &
-           moderate$`anti-human_Hashtag1` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag2` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag3` >= mod_hashtag_prob &
-           moderate$`anti-human_Hashtag4` <= other_hashtag_prob &
-           moderate$Blanks <= mod_blankliplet &
-           moderate$Multiplet <= mod_blankliplet, ]$Assignment = "anti-human_Hashtag3"
-moderate[moderate$Assignment == "Unassigned" &
-           moderate$`anti-human_Hashtag1` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag2` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag3` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag4` >= mod_hashtag_prob &
-           moderate$Blanks <= mod_blankliplet &
-           moderate$Multiplet <= mod_blankliplet, ]$Assignment = "anti-human_Hashtag4"
-table(moderate$Assignment)
-
-lib_hashtag_prob <- 0.80
-lib_blankliplet <- 0.3
-other_hashtag_prob <- 0.001
-
-# Make new assignments based on liberal cutoffs
-liberal <- pool
-liberal[liberal$Assignment == "Unassigned" &
-          liberal$`anti-human_Hashtag1` >= lib_hashtag_prob &
-          liberal$`anti-human_Hashtag2` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag3` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag4` <= other_hashtag_prob &
-          liberal$Blanks <= lib_blanktiplet &
-          liberal$Multiplet <= lib_blanktiplet, ]$Assignment = "anti-human_Hashtag1"
-liberal[liberal$Assignment == "Unassigned" &
-          liberal$`anti-human_Hashtag1` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag2` >= lib_hashtag_prob &
-          liberal$`anti-human_Hashtag3` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag4` <= other_hashtag_prob &
-          liberal$Blanks <= lib_blanktiplet &
-          liberal$Multiplet <= lib_blanktiplet, ]$Assignment = "anti-human_Hashtag2"
-liberal[liberal$Assignment == "Unassigned" &
-          liberal$`anti-human_Hashtag1` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag2` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag3` >= lib_hashtag_prob &
-          liberal$`anti-human_Hashtag4` <= other_hashtag_prob &
-          liberal$Blanks <= lib_blanktiplet &
-          liberal$Multiplet <= lib_blanktiplet, ]$Assignment = "anti-human_Hashtag3"
-liberal[liberal$Assignment == "Unassigned" &
-          liberal$`anti-human_Hashtag1` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag2` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag3` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag4` >= lib_hashtag_prob &
-          liberal$Blanks <= lib_blanktiplet &
-          liberal$Multiplet <= lib_blanktiplet, ]$Assignment = "anti-human_Hashtag4"
-table(liberal$Assignment)
+hashing <- fread(paste(data_path, "Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv", sep = "/"))
 
 # Load in total matrix and subset to only the barcodes Cellranger decided were cells
 full_matrix <- read10xCounts(paste(data_path, "Cellranger/outs/multi/count/raw_feature_bc_matrix", sep = "/"))
-sce <- full_matrix[, full_matrix$Barcode %in% pool$Barcodes]
+sce <- full_matrix[, full_matrix$Barcode %in% hashing$Barcodes]
 rm(full_matrix); gc()
 
-# Removing the barcode counts, because they will probably mess up the UMAP
+# Removing the barcode counts, they will mess with miQC results
 barcodes <- sce[grep("Hashtag", rownames(sce))]
 sce <- sce[grep("ENSG", rownames(sce))]
 
@@ -139,44 +60,6 @@ png(paste("plots/pooled/", sample_id, "_mito.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "subsets_mito_percent")
 dev.off()
 
-# Add assignment labels and confidence to sce object
-assignment <- pool[order(pool$Barcodes), ]
-assignment <- subset(assignment, assignment$Barcodes %in% sce$Barcode)$Assignment
-assignment[assignment == "Blanks" | assignment == "Multiplet"] <- "Unassigned"
-colData(sce) <- cbind(colData(sce), assignment)
-
-# Since one of the samples failed in one of the pools, it has no cells at more stringent thresholds and this
-# messes up the indexing for color. Checking for this beforehand each time keeps unassigned cells as gray.
-get_colors <- function(assignment) {
-  if (length(unique(assignment)) == 5) {
-    colors <- scale_color_manual(name = "assignment", values = c("#CA0020", "#0571B0", "#4DAC26", "#E66101", "#999999"))
-  } else if (length(unique(assignment)) == 4) {
-    colors <- scale_color_manual(name = "assignment", values = c("#0571B0", "#4DAC26", "#E66101", "#999999"))
-  }
-  colors
-}
-
-# Plot UMAP by assignment
-png(paste("plots/pooled/", sample_id, "_UMAP_assignment_90.png", sep = ""), width = 700)
-colors <- get_colors(sce$assignment); plotUMAP(sce, colour_by = "assignment") + colors
-dev.off()
-
-# Check how assignments look on UMAP with other filtering thresholds
-mod_assignment <- subset(moderate, moderate$Barcodes %in% sce$Barcode)$Assignment
-mod_assignment[mod_assignment == "Blanks" | mod_assignment == "Multiplet"] = "Unassigned"
-colData(sce) <- cbind(colData(sce), mod_assignment)
-png(paste("plots/pooled/", sample_id, "_UMAP_assignment_85.png", sep = ""), width = 700)
-colors <- get_colors(sce$mod_assignment); plotUMAP(sce, colour_by = "mod_assignment") + colors
-dev.off()
-
-lib_assignment <- subset(liberal, liberal$Barcodes %in% sce$Barcode)$Assignment
-lib_assignment[lib_assignment == "Blanks" | lib_assignment == "Multiplet"] = "Unassigned"
-colData(sce) <- cbind(colData(sce), lib_assignment)
-png(paste("plots/pooled/", sample_id, "_UMAP_assignment_80.png", sep = ""), width = 700)
-colors <- get_colors(sce$lib_assignment); plotUMAP(sce, colour_by = "lib_assignment") + colors
-dev.off()
-
-
 # Check for basic cell type markers (CD45 (aka PTPRC) for immune, EPCAM/PAX8 for 
 # epithelial, smooth muscle actin for fibroblasts)
 png(paste("plots/pooled/", sample_id, "_UMAP_CD45.png", sep = ""), width = 700)
@@ -194,3 +77,6 @@ dev.off()
 png(paste("plots/pooled/", sample_id, "_UMAP_ACTA2.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "ACTA2") + ggtitle(paste(sample_id, "smooth muscle actin"))
 dev.off()
+
+# Save filtered and UMAP'ed SingleCellExperiment object for future use
+saveRDS(sce, file=paste("sce_objects/", sample_id, ".rds", sep = ""))
