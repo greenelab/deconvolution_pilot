@@ -9,15 +9,18 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 
-# We have two sets of pooled samples, named after the date they were run (12/16/21 and 1/13/22). 
+source("config.R")
+
+# We have two sets of pooled samples, named after the date they were run (12/16/21 and 1/13/22).
 sample_id <- "01132022"
 
 # Load hashing demultiplexing assignment info to get barcodes to keep
-data_path <- normalizePath(paste("~/Documents/scRNA/sc-cancer-hgsc/data/pooled_tumors", sample_id, sep = "/"))
-hashing <- fread(paste(data_path, "Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv", sep = "/"))
+hashing <- fread(paste(data_path, "pooled_tumors", sample_id,
+		       "Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv", sep = "/"))
 
 # Load in total matrix and subset to only the barcodes Cellranger decided were cells
-full_matrix <- read10xCounts(paste(data_path, "Cellranger/outs/multi/count/raw_feature_bc_matrix", sep = "/"))
+full_matrix <- read10xCounts(paste(data_path, "pooled_tumors", sample_id,
+				   "Cellranger/outs/multi/count/raw_feature_bc_matrix", sep = "/"))
 sce <- full_matrix[, full_matrix$Barcode %in% hashing$Barcodes]
 rm(full_matrix); gc()
 
@@ -60,7 +63,7 @@ png(paste("plots/pooled/", sample_id, "_mito.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "subsets_mito_percent")
 dev.off()
 
-# Check for basic cell type markers (CD45 (aka PTPRC) for immune, EPCAM/PAX8 for 
+# Check for basic cell type markers (CD45 (aka PTPRC) for immune, EPCAM/PAX8 for
 # epithelial, smooth muscle actin for fibroblasts)
 png(paste("plots/pooled/", sample_id, "_UMAP_CD45.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "PTPRC") + ggtitle(paste(sample_id, "CD45"))

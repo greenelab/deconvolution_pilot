@@ -10,18 +10,17 @@ suppressPackageStartupMessages({
   library(caret)
 })
 
+source("config.R")
+
 ## Load data
 
 # We have two sets of pooled samples, named after the date they were run (12/16/21 and 1/13/22). 
 sample_id <- "01132022"
 
-# Load hash demultiplexing assignments
-data_path <- normalizePath(paste("~/Documents/scRNA/sc-cancer-hgsc/data/pooled_tumors", sample_id, sep = "/"))
-hashing <- fread(paste(data_path, "Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv", sep = "/"))
-
-# Get vireo (genetic demultiplexing) assignments
-data_path <- normalizePath(paste("~/Documents/scRNA/sc-cancer-hgsc/data/pooled_tumors", sample_id, sep = "/"))
-vireo <- fread(paste(data_path, "vireo/donor_ids.tsv", sep = "/"))
+# Load hash and vireo (genetic) demultiplexing assignments
+hashing <- fread(paste(data_path, "pooled_tumors", sample_id,
+		       "Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv", sep = "/"))
+vireo <- fread(paste(data_path, "pooled_tumors", sample_id, "vireo/donor_ids.tsv", sep = "/"))
 
 # Load SingleCellExperiment object for plotting
 sce <- readRDS(paste("sce_objects/", sample_id, ".rds", sep = ""))

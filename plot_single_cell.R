@@ -1,7 +1,4 @@
 # First look at the regular (non-pooled) single cell data from our pilot samples.
-
-setwd("~/Documents/scRNA/sc-cancer-hgsc/data")
-
 suppressPackageStartupMessages({
   library(DropletUtils)
   library(data.table)
@@ -10,12 +7,13 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 
+source("config.R")
+
 # Valid sample ids for pilot: 2251, 2267, 2283, 2293, 2380, 2428, 2467, 2497
 sample_id <- "2497"
 
 # Load data
-data_path <- normalizePath("~/Documents/scRNA/sc-cancer-hgsc/data/tumors/")
-sce <- read10xCounts(paste(data_path, sample_id, "Cellranger/outs/filtered_feature_bc_matrix", sep = "/"))
+sce <- read10xCounts(paste(data_path, "tumors", sample_id, "Cellranger/outs/filtered_feature_bc_matrix", sep = "/"))
 rownames(sce) <- rowData(sce)$Symbol
 
 # Run miQC
