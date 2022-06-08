@@ -10,7 +10,12 @@ suppressPackageStartupMessages({
 source("config.R")
 
 # Valid sample ids for pilot: 2251, 2267, 2283, 2293, 2380, 2428, 2467, 2497
-sample_id <- "2497"
+args = commandArgs(trailingOnly=TRUE)
+if (length(args)==0) {
+  stop("Sample ID must be provided.", call.=FALSE)
+} else {
+  sample_id <- args[1]
+}
 
 # Load data
 sce <- read10xCounts(paste(data_path, "tumors", sample_id, "Cellranger/outs/filtered_feature_bc_matrix", sep = "/"))
@@ -20,9 +25,10 @@ rownames(sce) <- rowData(sce)$Symbol
 mt_genes <- grepl("MT-", rownames(sce))
 feature_ctrls <- list(mito = rownames(sce)[mt_genes])
 sce <- addPerCellQC(sce, subsets = feature_ctrls)
+
+set.seed(317)
 model <- mixtureModel(sce)
 p <- plotFiltering(sce, model)
-
 before_cells <- ncol(sce)
 sce <- filterCells(sce, model)
 after_cells <- ncol(sce)
@@ -82,3 +88,6 @@ dev.off()
 png(paste("plots/single_cell/", sample_id, "_mito.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "subsets_mito_percent") + ggtitle(paste(sample_id, "% Mito"))
 dev.off()
+
+# Save filtered and UMAP'ed SingleCellExperiment object for future use
+saveRDS(sce, file=paste("sce_objects/", sample_id, ".rds", sep = ""))

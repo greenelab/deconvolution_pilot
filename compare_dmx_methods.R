@@ -14,8 +14,13 @@ source("config.R")
 
 ## Load data
 
-# We have two sets of pooled samples, named after the date they were run (12/16/21 and 1/13/22). 
-sample_id <- "01132022"
+# We have two sets of pooled samples, named after the date they were run (12162021 and 01132022).
+args = commandArgs(trailingOnly=TRUE)
+if (length(args)==0) {
+  stop("Sample ID must be provided.", call.=FALSE)
+} else {
+  sample_id <- args[1]
+}
 
 # Load hash and vireo (genetic) demultiplexing assignments
 hashing <- fread(paste(data_path, "pooled_tumors", sample_id,
