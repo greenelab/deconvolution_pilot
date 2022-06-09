@@ -1,7 +1,7 @@
 # This script is to help determine if deconvolution is possible using the
-# pooled single-cell data as reference (i.e. if we can pool samples in the)
-# future. We chose to try out Bisque and MuSiC first because a) they're in R
-# and b) they only require cell labels, not creation of a marker gene matrix.
+# pooled single-cell data as reference (i.e. if we can pool future samples).
+# We chose to try out Bisque and MuSiC first because a) they're in R and 
+# b) they only require cell labels, not creation of a marker gene matrix.
 # They also take the exact same inputs, bulk data and single-cell data as
 # ExpressionSet objects, so I ran them in the same script.
 
