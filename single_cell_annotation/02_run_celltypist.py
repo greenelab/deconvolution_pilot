@@ -1,3 +1,5 @@
+# See https://www.celltypist.org/ for more info
+
 import sys
 import celltypist
 
@@ -6,11 +8,13 @@ import celltypist
 # 01132022), or the two pooled runs combined (id should be "pooled")
 sample_id = sys.argv[1]
 
-input_file = "celltypist/%s_input_data.csv" % sample_id
+input_file = "../celltypist/%s_input_data.csv" % sample_id
 
+# Run celltypist
 predictions = celltypist.annotate(input_file, majority_voting = True)
 
-label_file = "celltypist/%s_predicted_labels.csv" % sample_id
+# Save output files
+label_file = "../celltypist/%s_predicted_labels.csv" % sample_id
 predictions.predicted_labels.to_csv(label_file, sep="\t")
-prob_file = "celltypist/%s_probability_matrix.csv" % sample_id
+prob_file = "../celltypist/%s_probability_matrix.csv" % sample_id
 predictions.probability_matrix.to_csv(prob_file, sep="\t")
