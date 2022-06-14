@@ -1,0 +1,98 @@
+# This snakefile runs genetic demultiplexing for all of our pooled data across all reference genotypes.
+
+# ---------
+# Variables
+# ---------
+
+# Samples: the eight samples used in the pilot. These samples were bulk and single-cell sequenced several different ways.
+# Pools: we ran each sample separately but also pooled them into two sets of four. Pools are named after the date they were prepared.
+# Bulk types: we ran bulk RNA-seq on the samples in three separate ways: rRNA depletion on tumor chunks, dissociation and then rRNA
+# depletion, dissociation and then polyA (3') capture. Here, each kind of bulk data can be used to generate reference genotypes.
+
+SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
+POOLS = ['12162021', '01132022']
+BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA']
+
+
+dir_pooled = "../../sc-cancer-hgsc/data/pooled_tumors"
+dir_bulk = "../../sc-cancer-hgsc/data/bulk_tumors"
+dir_index = "../../sc-cancer-hgsc/data/index"
+
+
+# --------
+# Workflow
+# --------
+
+rule all:
+	input:
+		expand(dir_pooled + "/{pool}/vireo/{bulk_type}/donor_ids.tsv", pool=POOLS, bulk_type=BULK_TYPES)
+
+rule run_vireo:
+	input:
+		dir_pooled + "/{pool}/cellSNP/{bulk_type}/cellSNP.base.vcf.gz"
+	output:
+		dir_pooled + "/{pool}/vireo/{bulk_type}/donor_ids.tsv"
+	shell:
+		"bash 06_run_vireo.sh {wildcards.pool} {wildcards.bulk_type}"
+
+rule run_cellSNP:
+	input:
+		dir_pooled + "/{pool}/bam/pooled.bam",
+		"barcodes_{pool}.txt",
+		dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}_rehead.vcf"
+	output:
+		dir_pooled + "/{pool}/cellSNP/{bulk_type}/cellSNP.base.vcf.gz"
+	shell:
+		"bash 05_run_cellsnp.sh {wildcards.pool} {wildcards.bulk_type}"
+
+rule make_vcf:
+	input:
+		expand(dir_bulk + "/{sample}/{bulk_type}/STAR/Aligned.sortedByCoord.out.bam", sample=SAMPLES, bulk_type=BULK_TYPES),
+		dir_index + "/refdata-gex-GRCh38-2020-A/fasta/genome.fa"
+	output:
+		dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}_rehead.vcf"
+	shell:
+		"bash 02_make_bulk_vcf_file.sh {wildcards.pool} {wildcards.bulk_type}"
+
+rule make_bulk_bam:
+	input:
+		dir_index + "/STAR_index/SAindex"
+	output:
+		dir_bulk + "/{sample}/{bulk_type}/STAR/Aligned.sortedByCoord.out.bam"
+	shell:
+		"bash 01_make_bulk_bam_file.sh {wildcards.sample} {wildcards.bulk_type}"
+
+rule get_sc_barcodes:
+	output:
+		"barcodes_{pool}.txt"
+	shell:
+		"bash 04_merge_barcodes.sh {wildcards.pool}"
+
+rule merge_sc_bam:
+	output:
+		dir_pooled + "/{pool}/bam/pooled.bam.bai"	
+	shell:
+		"bash 03_merge_pooled_bam_file.sh {wildcards.pool}"
+
+rule make_star_index:
+	input:
+		dir_index + "/refdata-gex-GRCh38-2020-A/fasta/genome.fa",
+		dir_index + "/refdata-gex-GRCh38-2020-A/genes/genes.gtf"
+	output:
+		dir_index + "/STAR_index/SAindex"
+	shell:
+		"bash 00_create_STAR_index.sh"
+
+rule get_reference_genome:
+	output:
+		dir_index + "/refdata-gex-GRCh38-2020-A.tar.gz"
+	shell:
+		"wget -P dir_index https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2020-A.tar.gz"
+
+checkpoint decompress_reference_genome:
+	output:
+		directory(dir_index + "refdata-gex-GRCh38-2020-A")
+	input:
+		dir_index + "/refdata-gex-GRCh38-2020-A.tar.gz"
+	shell:
+		"tar xvf {input} -C {output}"
