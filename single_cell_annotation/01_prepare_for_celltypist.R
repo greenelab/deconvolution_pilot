@@ -4,11 +4,9 @@
 # into its python implementation.
 
 suppressPackageStartupMessages({
- library(data.table)
- library(scater)
- library(scran)
- library(batchelor)
- library(igraph)
+  library(data.table)
+  library(scater)
+  library(scran)
 })
 
 # This can be run on an individual sample (valid ids 2251, 2267, 2283, 2293,
@@ -16,34 +14,24 @@ suppressPackageStartupMessages({
 # 01132022), or the two pooled runs combined (valid id pooled).
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) == 0) {
- stop("Sample ID must be provided.", call. = FALSE)
+  stop("Sample ID must be provided.", call. = FALSE)
 } else {
- sample_id <- args[1]
+  sample_id <- args[1]
 }
 
-# Load sce object, if using all pooled data run batchelor on the
-# combined samples to correct for batch effects
+# Load sce object
 if (sample_id == "pooled") {
- pool1 <- readRDS("../sce_objects/12162021.rds")
- pool1$pool <- "12162021"
- pool2 <- readRDS("../sce_objects/01132022.rds")
- pool2$pool <- "01132022"
+  pool1 <- readRDS("../sce_objects/12162021.rds")
+  pool1$pool <- "12162021"
+  pool2 <- readRDS("../sce_objects/01132022.rds")
+  pool2$pool <- "01132022"
 
- sce <- cbind(pool1, pool2)
+  sce <- cbind(pool1, pool2)
 
- set.seed(531)
- mnn <- fastMNN(sce, batch = sce$pool,
-         BSPARAM = BiocSingular::IrlbaParam(deferred = TRUE),
-         BNPARAM = BiocNeighbors::AnnoyParam(),
-         BPPARAM = BiocParallel::MulticoreParam())
-
- reducedDim(sce, "MNN") <- reducedDim(mnn, "corrected")
- rm(mnn)
-
- colnames(sce) <- paste(sce$pool, sce$Barcode, sep = "-")
+  colnames(sce) <- paste(sce$pool, sce$Barcode, sep = "-")
 } else {
- sce <- readRDS(paste("../sce_objects/", sample_id, ".rds", sep = ""))
- colnames(sce) <- sce$Barcode
+  sce <- readRDS(paste("../sce_objects/", sample_id, ".rds", sep = ""))
+  colnames(sce) <- sce$Barcode
 }
 
 # Get count matrix, transpose for celltypist which expects a cell x gene matrix

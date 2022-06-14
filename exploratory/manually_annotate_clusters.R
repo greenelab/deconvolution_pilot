@@ -72,7 +72,8 @@ saveRDS(sce,  file = "sce_objects/pooled_clustered_50.rds")
 
 plotUMAP(sce, colour_by = "clusters")
 
-
+# findMarkers returns results for all genes regardless of significance,
+# so for clarity we pull out the ones with a FDR of <=0.05.
 getOnlySignificantGenes <- function(mylist) {
   for (i in 1:length(mylist)) {
     x <- mylist[[i]]
