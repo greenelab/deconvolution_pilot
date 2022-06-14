@@ -1,13 +1,16 @@
 # Based on https://github.com/lmweber/snp-dmx-cancer, file genotype/align_index_bulk_STAR/align_index_bulk_HGSOC_17667X1.sh
-# This will need to be run once for each sample, with the sample ID passed in as a parameter.
+# This will need to be run once for each sample and for each type of bulk sequencing, with the sample ID and the bulk type
+# (i.e. dissociated or not, rRNA depleted or poly-A selected) passed in as parameters.
 
 # Options are 2251, 2267, 2283, 2293, 2380, 2428, 2467, 2497
 sample=$1
+# Options are chunk_ribo, dissociated_ribo, and dissociated_polyA 
+bulk_type=$2
 
 original_location=`pwd`
 cd ../../sc-cancer-hgsc/data/index
 index_location=`pwd`
-cd ../bulk_tumors/$sample/chunk_ribo
+cd ../bulk_tumors/$sample/$bulk_type
 tumor_location=`pwd`
 
 # Each sample has a unique run id, e.g. S62 in ${sample}_${SID}_L001_R1_001.fastq.gz
