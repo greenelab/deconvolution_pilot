@@ -76,16 +76,22 @@ rule get_sc_barcodes:
 		"barcodes_{pool}.txt"
 	params:
 		assignmentsfile = dir_pooled + "/{pool}/Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv"
-	priority:
-		500
 	shell:
 		"cut {params.assignmentsfile} -d',' -f6 | sed '1d' > {output}"
 
 rule merge_sc_bam:
 	output:
-		dir_pooled + "/{pool}/bam/pooled.bam.bai"	
+		dir_pooled + "/{pool}/bam/pooled.bam"
+	params:
+		unassigned = dir_pooled + "/{pool}/Cellranger/outs/multi/count/unassigned_alignments.bam",
+		assigned = lambda wildcards: \
+			[dir_pooled + "/{0}/Cellranger/outs/per_sample_outs/{1}/count/sample_alignments.bam".format(wildcards.pool, sample) \
+			for sample in SAMPLES[wildcards.pool]
+			]
+	priority:
+		500
 	shell:
-		"bash 03_merge_pooled_bam_file.sh {wildcards.pool}"
+		"samtools merge {output} {params.unassigned} {params.assigned}; samtools index {output}"
 
 rule make_star_index:
 	input:
