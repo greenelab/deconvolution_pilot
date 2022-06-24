@@ -13,21 +13,16 @@ index_location=`pwd`
 cd ../bulk_tumors/$sample/$bulk_type
 tumor_location=`pwd`
 
-# Each sample has a unique run id, e.g. S62 in ${sample}_${SID}_L001_R1_001.fastq.gz
-# We'll pull it out here to consistently name the merged files
-SIDtmp=`ls *_L001_R1_001.fastq.gz` 
-SID="$(echo $SIDtmp | cut -d'_' -f2)"
-
 cd $original_location
 
 # STAR only accepts one set of files, so we'll merge across lanes
-cat $tumor_location/${sample}_${SID}_L001_R1_001.fastq.gz $tumor_location/${sample}_${SID}_L002_R1_001.fastq.gz > $tumor_location/${sample}_${SID}_R1_merged.fastq.gz
-cat $tumor_location/${sample}_${SID}_L001_R2_001.fastq.gz $tumor_location/${sample}_${SID}_L002_R2_001.fastq.gz > $tumor_location/${sample}_${SID}_R2_merged.fastq.gz
+cat $tumor_location/${sample}_L001_R1_001.fastq.gz $tumor_location/${sample}_L002_R1_001.fastq.gz > $tumor_location/${sample}_R1_merged.fastq.gz
+cat $tumor_location/${sample}_L001_R2_001.fastq.gz $tumor_location/${sample}_L002_R2_001.fastq.gz > $tumor_location/${sample}_R2_merged.fastq.gz
 
 STAR \
 	--genomeDir $index_location/STAR_index \
 	--runThreadN 6 \
-	--readFilesIn $tumor_location/${sample}_${SID}_R1_merged.fastq.gz  $tumor_location/${sample}_${SID}_R2_merged.fastq.gz \
+	--readFilesIn $tumor_location/${sample}_R1_merged.fastq.gz  $tumor_location/${sample}_R2_merged.fastq.gz \
 	--outFileNamePrefix $tumor_location/STAR/ \
 	--readFilesCommand gunzip -c \
 	--outSAMtype BAM SortedByCoordinate \
