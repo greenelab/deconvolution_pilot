@@ -19,7 +19,8 @@ dir_bulk = "../../sc-cancer-hgsc/data/bulk_tumors"
 dir_index = "../../sc-cancer-hgsc/data/index"
 
 wildcard_constraints:
-	pool="\d+"
+	pool="\d+",
+	bulk_type="[A-Za-z]+_[A-Za-z]+"
 
 # --------
 # Workflow
@@ -73,8 +74,12 @@ rule make_bulk_bam:
 rule get_sc_barcodes:
 	output:
 		"barcodes_{pool}.txt"
+	params:
+		assignmentsfile = dir_pooled + "/{pool}/Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv"
+	priority:
+		500
 	shell:
-		"bash 04_merge_barcodes.sh {wildcards.pool}"
+		"cut {params.assignmentsfile} -d',' -f6 | sed '1d' > {output}"
 
 rule merge_sc_bam:
 	output:
