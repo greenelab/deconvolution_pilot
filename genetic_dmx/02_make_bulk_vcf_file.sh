@@ -38,7 +38,7 @@ bcftools mpileup -Ou \
 	$tumor_location/$sample3/$bulk_type/STAR/Aligned.sortedByCoord.out.bam \
 	$tumor_location/$sample4/$bulk_type/STAR/Aligned.sortedByCoord.out.bam | \
 bcftools call -mv -Ov \
-	-o $tumor_location/pooled_vcf/bcftools_${pool}.vcf
+	-o $tumor_location/pooled_vcf/bcftools_${pool}_${bulk_type}.vcf
 
 # Create file containing updated sample names
 echo "$tumor_location/$sample1/$bulk_type/STAR/Aligned.sortedByCoord.out.bam $sample1" > sample_names_bulk_${pool}_${bulk_type}.txt
