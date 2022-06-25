@@ -61,9 +61,36 @@ rule make_vcf:
 			],
 		genome = dir_index + "/refdata-gex-GRCh38-2020-A/fasta/genome.fa"
 	output:
+		dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}.vcf"
+	shell:
+		"""bcftools mpileup -Ou -f {input.genome} {input.bam} | \
+		bcftools call -mv -Ov -o {output} """
+
+rule make_reheader_file:
+	input:
+		bam = lambda wildcards: \
+			[dir_bulk + "/{0}/{1}/STAR/Aligned.sortedByCoord.out.bam".format(sampleid, wildcards.bulk_type) \
+			for sampleid in POOL_MAP[wildcards.pool]
+			]
+	params:
+		poolsamples = lambda wildcards: [sampleid for sampleid in POOL_MAP[wildcards.pool]]
+	output:
+		temp("sample_names_bulk_{pool}_{bulk_type}.txt")
+	shell:
+		"""for ps in {params.poolsamples}
+		do
+		 	echo "{dir_bulk}/$ps/{wildcards.bulk_type}/STAR/Aligned.sortedByCoord.out.bam $ps" >> {output}
+		done
+		"""
+
+rule reheader_vcf: 
+	input:
+		vcf = dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}.vcf",
+		namefile = "sample_names_bulk_{pool}_{bulk_type}.txt"
+	output:
 		dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}_rehead.vcf"
 	shell:
-		"bash 02_make_bulk_vcf_file.sh {wildcards.pool} {wildcards.bulk_type}"
+		"bcftools reheader -s {input.namefile} {input.vcf} > {output}"
 
 rule make_bulk_bam:
 	input:
