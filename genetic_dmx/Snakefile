@@ -9,6 +9,7 @@
 # Pool map: which samples are part of which pool. This is used to merge bam files per pool.
 # Bulk types: we ran bulk RNA-seq on the samples in three separate ways: rRNA depletion on tumor chunks, dissociation and then rRNA
 # depletion, dissociation and then polyA (3') capture. Here, each kind of bulk data can be used to generate reference genotypes.
+# Threads: number of cores to run on
 
 SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
 POOLS = ['12162021', '01132022']
@@ -32,6 +33,7 @@ rule all:
 	input:
 		expand(dir_pooled + "/{pool}/vireo/{bulk_type}/donor_ids.tsv", pool=POOLS, bulk_type=BULK_TYPES)
 
+# Assigns cells to one of N donors based on single-cell genotypes from cellSNP
 rule run_vireo:
 	input:
 		cellsnp = dir_pooled + "/{pool}/cellSNP/{bulk_type}/cellSNP.base.vcf.gz"
@@ -43,6 +45,7 @@ rule run_vireo:
 	shell:
 		"vireo -c {params.indir} -N 4 -o {params.outdir} --randSeed=123"
 
+# Generates genotypes for single-cell data at SNP locations from the bulk vcf file
 rule run_cellSNP:
 	input:
 		bam = dir_pooled + "/{pool}/bam/pooled.bam",
@@ -56,6 +59,7 @@ rule run_cellSNP:
 		"""cellsnp-lite -s {input.bam} -b {input.barcodes} -O {params.outdir} \
 		 -R {input.vcf} -p {THREADS} --minMAF = 0.1 --minCount=20 --gzip"""
 
+# Call SNPs on the bulk data
 rule make_vcf:
 	input:
 		bam = lambda wildcards: \
@@ -69,6 +73,9 @@ rule make_vcf:
 		"""bcftools mpileup -Ou -f {input.genome} {input.bam} | \
 		bcftools call -mv -Ov -o {output} """
 
+# The command in make_vcf will label the samples as the full path to their bam file, which
+# is unwieldy and can mess up future steps. The bcftools reheader command allows for
+# the renaming of samples. This rule prepares the input text file with names to change.
 rule make_reheader_file:
 	input:
 		bam = lambda wildcards: \
@@ -86,6 +93,7 @@ rule make_reheader_file:
 		done
 		"""
 
+# Rename samples in bulk vcf file 
 rule reheader_vcf: 
 	input:
 		vcf = dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}.vcf",
@@ -95,6 +103,7 @@ rule reheader_vcf:
 	shell:
 		"bcftools reheader -s {input.namefile} {input.vcf} > {output}"
 
+# Align (and quantify) the bulk samples ahead of genotyping them
 rule make_bulk_bam:
 	input:
 		ancient(dir_index + "/STAR_index/SAindex"),
@@ -116,6 +125,9 @@ rule make_bulk_bam:
 		--quantMode GeneCounts
 		samtools index {output}"""
 
+# Each bulk sample was on two lanes, meaning each sample has four (paired-end)
+# fastq files. STAR can only handle one or two fastq files, so we will concatenate
+# the two lanes together into a new fastq file.
 rule merge_bulk_fastas:
 	input:
 		l1r1 = dir_bulk + "/{sample}/{bulk_type}/{sample}_L001_R1_001.fastq.gz",
@@ -129,6 +141,9 @@ rule merge_bulk_fastas:
 		"""cat {input.l1r1} {input.l2r1} > {output.r1}
 		cat {input.l1r2} {input.l2r2} > {output.r2}"""	
 
+# cellSNP requires a list of cell barcodes. I'm pulling them from the output of
+# cellranger multi, for convenience and to allow direct comparison betweeen hash
+# and genetic demultiplexing.
 rule get_sc_barcodes:
 	output:
 		temp("barcodes_{pool}.txt")
@@ -137,6 +152,10 @@ rule get_sc_barcodes:
 	shell:
 		"cut {params.assignmentsfile} -d',' -f6 | sed '1d' > {output}"
 
+# cellranger multi already generates a bam file for the single-cell data, but it
+# splits it up into multiple files, one for each donor with the reads confidently
+# assigned to that donor, and one with "unassigned alignments". Here we merge the
+# files into a single bam file to use in cellSNP
 rule merge_sc_bam:
 	output:
 		dir_pooled + "/{pool}/bam/pooled.bam"
@@ -148,6 +167,12 @@ rule merge_sc_bam:
 			]
 	shell:
 		"samtools merge {output} {params.unassigned} {params.assigned}; samtools index {output}"
+
+# -----------
+# Preparatory
+# -----------
+
+# These steps should only ever need to be run once, and are included for reproducibility reasons
 
 rule make_star_index:
 	input:
