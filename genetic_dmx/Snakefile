@@ -14,7 +14,7 @@ SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
 POOLS = ['12162021', '01132022']
 POOL_MAP = {'12162021':['2267', '2283', '2293', '2380'], '01132022':['2251', '2428', '2467', '2497']}
 BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA']
-THREADS = 6 #TODO: figure out if this is necessary
+THREADS = 6
 
 dir_pooled = "../../sc-cancer-hgsc/data/pooled_tumors"
 dir_bulk = "../../sc-cancer-hgsc/data/bulk_tumors"
@@ -28,30 +28,33 @@ wildcard_constraints:
 # Workflow
 # --------
 
-def get_pool_samples(pool):
-	return TMP[pool]
-
 rule all:
 	input:
 		expand(dir_pooled + "/{pool}/vireo/{bulk_type}/donor_ids.tsv", pool=POOLS, bulk_type=BULK_TYPES)
 
 rule run_vireo:
 	input:
-		dir_pooled + "/{pool}/cellSNP/{bulk_type}/cellSNP.base.vcf.gz"
+		cellsnp = dir_pooled + "/{pool}/cellSNP/{bulk_type}/cellSNP.base.vcf.gz"
 	output:
 		dir_pooled + "/{pool}/vireo/{bulk_type}/donor_ids.tsv"
+	params:
+		indir = dir_pooled + "/{pool}/cellSNP/{bulk_type}/",
+		outdir = dir_pooled + "/{pool}/vireo/{bulk_type}/"
 	shell:
-		"bash 06_run_vireo.sh {wildcards.pool} {wildcards.bulk_type}"
+		"vireo -c {params.indir} -N 4 -o {params.outdir} --randSeed=123"
 
 rule run_cellSNP:
 	input:
-		dir_pooled + "/{pool}/bam/pooled.bam",
-		"barcodes_{pool}.txt",
-		dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}_rehead.vcf"
+		bam = dir_pooled + "/{pool}/bam/pooled.bam",
+		barcodes = "barcodes_{pool}.txt",
+		vcf = dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}_rehead.vcf"
 	output:
 		dir_pooled + "/{pool}/cellSNP/{bulk_type}/cellSNP.base.vcf.gz"
+	params:
+		outdir = dir_pooled + "/{pool}/cellSNP/{bulk_type}/"
 	shell:
-		"bash 05_run_cellsnp.sh {wildcards.pool} {wildcards.bulk_type}"
+		"""cellsnp-lite -s {input.bam} -b {input.barcodes} -O {params.outdir} \
+		 -R {input.vcf} -p {THREADS} --minMAF = 0.1 --minCount=20 --gzip"""
 
 rule make_vcf:
 	input:
