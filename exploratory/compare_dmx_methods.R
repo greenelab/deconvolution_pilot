@@ -7,10 +7,9 @@ suppressPackageStartupMessages({
   library(miQC)
   library(ggplot2)
   library(dplyr)
-  library(caret)
 })
 
-source("config.R")
+source("../config.R")
 
 ## Load data
 
