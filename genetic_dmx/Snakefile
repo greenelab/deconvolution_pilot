@@ -125,7 +125,7 @@ rule make_bulk_bam:
 		--quantMode GeneCounts
 		samtools index {output}"""
 
-# Each bulk sample was on two lanes, meaning each sample has four (paired-end)
+# Each bulk sample was run on two lanes, meaning each sample has four (paired-end)
 # fastq files. STAR can only handle one or two fastq files, so we will concatenate
 # the two lanes together into a new fastq file.
 rule merge_bulk_fastas:
@@ -145,28 +145,28 @@ rule merge_bulk_fastas:
 # cellranger multi, for convenience and to allow direct comparison betweeen hash
 # and genetic demultiplexing.
 rule get_sc_barcodes:
+	input:
+		assignmentsfile = dir_pooled + "/{pool}/Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv"
 	output:
 		temp("barcodes_{pool}.txt")
-	params:
-		assignmentsfile = dir_pooled + "/{pool}/Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv"
 	shell:
-		"cut {params.assignmentsfile} -d',' -f6 | sed '1d' > {output}"
+		"cut {input.assignmentsfile} -d',' -f6 | sed '1d' > {output}"
 
 # cellranger multi already generates a bam file for the single-cell data, but it
 # splits it up into multiple files, one for each donor with the reads confidently
 # assigned to that donor, and one with "unassigned alignments". Here we merge the
 # files into a single bam file to use in cellSNP
 rule merge_sc_bam:
-	output:
-		dir_pooled + "/{pool}/bam/pooled.bam"
-	params:
+	input:
 		unassigned = dir_pooled + "/{pool}/Cellranger/outs/multi/count/unassigned_alignments.bam",
 		assigned = lambda wildcards: \
 			[dir_pooled + "/{0}/Cellranger/outs/per_sample_outs/{1}/count/sample_alignments.bam".format(wildcards.pool, sampleid) \
 			for sampleid in POOL_MAP[wildcards.pool]
 			]
+	output:
+		dir_pooled + "/{pool}/bam/pooled.bam"
 	shell:
-		"samtools merge {output} {params.unassigned} {params.assigned}; samtools index {output}"
+		"samtools merge {output} {input.unassigned} {input.assigned}; samtools index {output}"
 
 # -----------
 # Preparatory
