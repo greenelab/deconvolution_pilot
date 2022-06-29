@@ -1,0 +1,198 @@
+# This snakefile runs genetic demultiplexing for all of our pooled data across all reference genotypes.
+
+# ---------
+# Variables
+# ---------
+
+# Samples: the eight samples used in the pilot. These samples were bulk and single-cell sequenced several different ways.
+# Pools: we ran each sample separately but also pooled them into two sets of four. Pools are named after the date they were prepared.
+# Pool map: which samples are part of which pool. This is used to merge bam files per pool.
+# Bulk types: we ran bulk RNA-seq on the samples in three separate ways: rRNA depletion on tumor chunks, dissociation and then rRNA
+# depletion, dissociation and then polyA (3') capture. Here, each kind of bulk data can be used to generate reference genotypes.
+# Threads: number of cores to run on
+
+SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
+POOLS = ['12162021', '01132022']
+POOL_MAP = {'12162021':['2267', '2283', '2293', '2380'], '01132022':['2251', '2428', '2467', '2497']}
+BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA']
+THREADS = 6
+
+dir_pooled = "../../sc-cancer-hgsc/data/pooled_tumors"
+dir_bulk = "../../sc-cancer-hgsc/data/bulk_tumors"
+dir_index = "../../sc-cancer-hgsc/data/index"
+
+wildcard_constraints:
+	pool="\d+",
+	bulk_type="[A-Za-z]+_[A-Za-z]+"
+
+# --------
+# Workflow
+# --------
+
+rule all:
+	input:
+		expand(dir_pooled + "/{pool}/vireo/{bulk_type}/donor_ids.tsv", pool=POOLS, bulk_type=BULK_TYPES)
+
+# Assigns cells to one of N donors based on single-cell genotypes from cellSNP
+rule run_vireo:
+	input:
+		cellsnp = dir_pooled + "/{pool}/cellSNP/{bulk_type}/cellSNP.base.vcf.gz"
+	output:
+		dir_pooled + "/{pool}/vireo/{bulk_type}/donor_ids.tsv"
+	params:
+		indir = dir_pooled + "/{pool}/cellSNP/{bulk_type}/",
+		outdir = dir_pooled + "/{pool}/vireo/{bulk_type}/"
+	shell:
+		"vireo -c {params.indir} -N 4 -o {params.outdir} --randSeed=123"
+
+# Generates genotypes for single-cell data at SNP locations from the bulk vcf file
+rule run_cellSNP:
+	input:
+		bam = dir_pooled + "/{pool}/bam/pooled.bam",
+		barcodes = "barcodes_{pool}.txt",
+		vcf = dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}_rehead.vcf"
+	output:
+		dir_pooled + "/{pool}/cellSNP/{bulk_type}/cellSNP.base.vcf.gz"
+	params:
+		outdir = dir_pooled + "/{pool}/cellSNP/{bulk_type}/"
+	shell:
+		"""cellsnp-lite -s {input.bam} -b {input.barcodes} -O {params.outdir} \
+		 -R {input.vcf} -p {THREADS} --minMAF = 0.1 --minCount=20 --gzip"""
+
+# Call SNPs on the bulk data
+rule make_vcf:
+	input:
+		bam = lambda wildcards: \
+			[dir_bulk + "/{0}/{1}/STAR/Aligned.sortedByCoord.out.bam".format(sampleid, wildcards.bulk_type) \
+			for sampleid in POOL_MAP[wildcards.pool]
+			],
+		genome = dir_index + "/refdata-gex-GRCh38-2020-A/fasta/genome.fa"
+	output:
+		dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}.vcf"
+	shell:
+		"""bcftools mpileup -Ou -f {input.genome} {input.bam} | \
+		bcftools call -mv -Ov -o {output} """
+
+# The command in make_vcf will label the samples as the full path to their bam file, which
+# is unwieldy and can mess up future steps. The bcftools reheader command allows for
+# the renaming of samples. This rule prepares the input text file with names to change.
+rule make_reheader_file:
+	input:
+		bam = lambda wildcards: \
+			[dir_bulk + "/{0}/{1}/STAR/Aligned.sortedByCoord.out.bam".format(sampleid, wildcards.bulk_type) \
+			for sampleid in POOL_MAP[wildcards.pool]
+			]
+	params:
+		poolsamples = lambda wildcards: [sampleid for sampleid in POOL_MAP[wildcards.pool]]
+	output:
+		temp("sample_names_bulk_{pool}_{bulk_type}.txt")
+	shell:
+		"""for ps in {params.poolsamples}
+		do
+		 	echo "{dir_bulk}/$ps/{wildcards.bulk_type}/STAR/Aligned.sortedByCoord.out.bam $ps" >> {output}
+		done
+		"""
+
+# Rename samples in bulk vcf file 
+rule reheader_vcf: 
+	input:
+		vcf = dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}.vcf",
+		namefile = "sample_names_bulk_{pool}_{bulk_type}.txt"
+	output:
+		dir_bulk + "/pooled_vcf/bcftools_{pool}_{bulk_type}_rehead.vcf"
+	shell:
+		"bcftools reheader -s {input.namefile} {input.vcf} > {output}"
+
+# Align (and quantify) the bulk samples ahead of genotyping them
+rule make_bulk_bam:
+	input:
+		ancient(dir_index + "/STAR_index/SAindex"),
+		r1 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R1_merged.fastq.gz",
+		r2 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R2_merged.fastq.gz"
+	params:
+		index = dir_index + "/STAR_index",
+		outdir = dir_bulk + "/{sample}/{bulk_type}/STAR/"
+	output:
+		dir_bulk + "/{sample}/{bulk_type}/STAR/Aligned.sortedByCoord.out.bam"
+	shell:
+		"""STAR \
+		--genomeDir {params.index} \
+		--runThreadN {THREADS} \
+		--readFilesIn {input.r1} {input.r2} \
+		--outFileNamePrefix {params.outdir} \
+		--readFilesCommand gunzip -c \
+		--outSAMtype BAM SortedByCoordinate \
+		--quantMode GeneCounts
+		samtools index {output}"""
+
+# Each bulk sample was run on two lanes, meaning each sample has four (paired-end)
+# fastq files. STAR can only handle one or two fastq files, so we will concatenate
+# the two lanes together into a new fastq file.
+rule merge_bulk_fastas:
+	input:
+		l1r1 = dir_bulk + "/{sample}/{bulk_type}/{sample}_L001_R1_001.fastq.gz",
+		l1r2 = dir_bulk + "/{sample}/{bulk_type}/{sample}_L001_R2_001.fastq.gz",
+		l2r1 = dir_bulk + "/{sample}/{bulk_type}/{sample}_L002_R1_001.fastq.gz",
+		l2r2 = dir_bulk + "/{sample}/{bulk_type}/{sample}_L002_R2_001.fastq.gz"
+	output:
+		r1 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R1_merged.fastq.gz",
+		r2 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R2_merged.fastq.gz"
+	shell:
+		"""cat {input.l1r1} {input.l2r1} > {output.r1}
+		cat {input.l1r2} {input.l2r2} > {output.r2}"""	
+
+# cellSNP requires a list of cell barcodes. I'm pulling them from the output of
+# cellranger multi, for convenience and to allow direct comparison betweeen hash
+# and genetic demultiplexing.
+rule get_sc_barcodes:
+	input:
+		assignmentsfile = dir_pooled + "/{pool}/Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv"
+	output:
+		temp("barcodes_{pool}.txt")
+	shell:
+		"cut {input.assignmentsfile} -d',' -f6 | sed '1d' > {output}"
+
+# cellranger multi already generates a bam file for the single-cell data, but it
+# splits it up into multiple files, one for each donor with the reads confidently
+# assigned to that donor, and one with "unassigned alignments". Here we merge the
+# files into a single bam file to use in cellSNP
+rule merge_sc_bam:
+	input:
+		unassigned = dir_pooled + "/{pool}/Cellranger/outs/multi/count/unassigned_alignments.bam",
+		assigned = lambda wildcards: \
+			[dir_pooled + "/{0}/Cellranger/outs/per_sample_outs/{1}/count/sample_alignments.bam".format(wildcards.pool, sampleid) \
+			for sampleid in POOL_MAP[wildcards.pool]
+			]
+	output:
+		dir_pooled + "/{pool}/bam/pooled.bam"
+	shell:
+		"samtools merge {output} {input.unassigned} {input.assigned}; samtools index {output}"
+
+# -----------
+# Preparatory
+# -----------
+
+# These steps should only ever need to be run once, and are included for reproducibility reasons
+
+rule make_star_index:
+	input:
+		dir_index + "/refdata-gex-GRCh38-2020-A/fasta/genome.fa",
+		dir_index + "/refdata-gex-GRCh38-2020-A/genes/genes.gtf"
+	output:
+		dir_index + "/STAR_index/SAindex"
+	shell:
+		"STAR --runMode genomeGenerate --runThreadN 6 --genomeDir {dir_index}/STAR_index --genomeFastaFiles {dir_index}/refdata-gex-GRCh38-2020-A/fasta/genome.fa --sjdbGTFfile {dir_index}/refdata-gex-GRCh38-2020-A/genes/genes.gtf"
+
+rule get_reference_genome:
+	output:
+		dir_index + "/refdata-gex-GRCh38-2020-A.tar.gz"
+	shell:
+		"wget -P dir_index https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2020-A.tar.gz"
+
+checkpoint decompress_reference_genome:
+	output:
+		directory(dir_index + "refdata-gex-GRCh38-2020-A")
+	input:
+		dir_index + "/refdata-gex-GRCh38-2020-A.tar.gz"
+	shell:
+		"tar xvf {input} -C {output}"
