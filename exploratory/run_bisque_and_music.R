@@ -31,7 +31,7 @@ ct <- left_join(ct, label_table)
 sce$cellType <- ct$Simplified
 sce[, sce$cellType == "NK cells" &
     sce$clusters %in% c(2, 6, 10)]$cellType <- "Fibroblasts"
-sce[, sce$cellType == "Tcm/Naive helper T cells" &
+sce[, sce$cellType == "T cells" &
     sce$clusters %in% c(7, 9)]$cellType <- "Epithelial cells"
 
 plotUMAP(sce, colour_by = "cellType")
@@ -67,12 +67,38 @@ bulk <- ExpressionSet(bulk_matrix)
 # Run bisque
 res <- ReferenceBasedDecomposition(bulk.eset = bulk,
                                    sc.eset = single_cell,
-                                   use.overlap = F)
+                                   use.overlap = FALSE)
+# TODO: write this to file once I have a plan for organizing the results
 res$bulk.props
 
 # Run music
 mus <- music_prop(bulk.eset = bulk,
                   sc.eset = single_cell,
+                  clusters = "cellType",
+                  samples = "SubjectName")
+mus$Est.prop.weighted
+mus$Est.prop.allgene
+
+# Load filtered single cell data into ExpressionSet object
+fil <- readRDS("../sce_objects/manually_assigned.rds")
+rownames(fil) <- rowData(fil)$ID
+fil$SubjectName <- paste(fil$Pool, fil$Barcode, sep = "-")
+setnames(sce, "cell_type", "cellType")
+phenos <- as.data.frame(subset(colData(fil),
+                        select = c("SubjectName", "cellType")))
+pheno_metadata <- data.frame(labelDescription = c("Characters", "Characters"))
+pheno <- AnnotatedDataFrame(data = phenos, varMetadata = pheno_metadata)
+filter_cell <- ExpressionSet(as.matrix(assay(fil)), phenoData = pheno)
+
+# Run bisque with filtered cell data
+res <- ReferenceBasedDecomposition(bulk.eset = bulk,
+                                   sc.eset = filter_cell,
+                                   use.overlap = FALSE)
+res$bulk.props
+
+# Run music with filtered cell data
+mus <- music_prop(bulk.eset = bulk,
+                  sc.eset = filter_cell,
                   clusters = "cellType",
                   samples = "SubjectName")
 mus$Est.prop.weighted
