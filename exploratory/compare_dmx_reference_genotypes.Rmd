@@ -1,0 +1,166 @@
+---
+title: "Compare reference genotypes for vireo"
+author: "Ariel Hippen"
+date: '2022-06-27'
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+suppressPackageStartupMessages({
+  library(data.table)
+  library(scater)
+  library(ggplot2)
+  library(dplyr)
+  library(caret)
+})
+```
+
+
+
+## Load data
+
+```{r options}
+# We have two sets of pooled samples, named after the date they were run (12162021 and 01132022).
+sample_id <- "12162021"
+
+source("../config.R")
+```
+
+```{r}
+# Load hash and vireo (genetic) demultiplexing assignments
+hashing <- fread(paste(data_path, "pooled_tumors", sample_id,
+                       "Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv", sep = "/"))
+
+vireo_path <- paste(data_path, "pooled_tumors", sample_id, "vireo", sep = "/")
+chunk_ribo <- fread(paste(vireo_path, "chunk_ribo/donor_ids.tsv", sep = "/"))
+dissociated_ribo <- fread(paste(vireo_path, "dissociated_ribo/donor_ids.tsv", sep = "/"))
+dissociated_polyA <- fread(paste(vireo_path, "dissociated_polyA/donor_ids.tsv", sep = "/"))
+```
+
+```{r}
+# Load SingleCellExperiment object for plotting
+sce <- readRDS(paste("../sce_objects/", sample_id, ".rds", sep = ""))
+```
+
+```{r}
+# Filter hashing and vireo to cells in sce object, all others failed miQC filtering
+hashing <- subset(hashing, hashing$Barcodes %in% sce$Barcode)
+chunk_ribo <- subset(chunk_ribo, chunk_ribo$cell %in% sce$Barcode)
+dissociated_ribo <- subset(dissociated_ribo, dissociated_ribo$cell %in% sce$Barcode)
+dissociated_polyA <- subset(dissociated_polyA, dissociated_polyA$cell %in% sce$Barcode)
+```
+
+```{r}
+# Subset down and join into one matrix
+setnames(chunk_ribo, "donor_id", "chunk_ribo_assignment")
+setnames(dissociated_ribo, "donor_id", "dissociated_ribo_assignment")
+setnames(dissociated_polyA, "donor_id", "dissociated_polyA_assignment")
+
+assignments <- full_join(subset(chunk_ribo, select = c("cell", "chunk_ribo_assignment")),
+                         subset(dissociated_ribo, select = c("cell", "dissociated_ribo_assignment"))) %>% 
+               full_join(., subset(dissociated_polyA, select = c("cell", "dissociated_polyA_assignment")))
+assignments$chunk_ribo_assignment <- as.factor(assignments$chunk_ribo_assignment)
+assignments$dissociated_ribo_assignment <- as.factor(assignments$dissociated_ribo_assignment)
+assignments$dissociated_polyA_assignment <- as.factor(assignments$dissociated_polyA_assignment)
+```
+
+## Compare vireo assignments
+
+```{r}
+# Run confusion matrix
+confusionMatrix(assignments$chunk_ribo_assignment, assignments$dissociated_ribo_assignment)$table
+confusionMatrix(assignments$chunk_ribo_assignment, assignments$dissociated_polyA_assignment)$table
+confusionMatrix(assignments$dissociated_ribo_assignment, assignments$dissociated_polyA_assignment)$table
+```
+
+There seems to be a lot of concordance across the sets, which is encouraging. I want to check if there are patterns in the off-diagonal cells.
+
+Since donor labels are assigned randomly, all "donor2" cells in chunk_ribo might be called "donor0" in dissociated_ribo. I'll have to manually reassign them to a new name. I'll use A, B, C, and D.
+
+```{r}
+assignments$CR <- assignments$chunk_ribo_assignment
+assignments$CR <- recode(assignments$CR,
+                         "donor0" = "A",
+                         "donor1" = "B",
+                         "donor2" = "C",
+                         "donor3" = "D")
+
+assignments$DR <- assignments$dissociated_ribo_assignment
+assignments$DR <- recode(assignments$DR,
+                         "donor0" = "D",
+                         "donor1" = "A",
+                         "donor2" = "B",
+                         "donor3" = "C")
+
+assignments$DP <- assignments$dissociated_polyA_assignment
+assignments$DP <- recode(assignments$DP,
+                         "donor0" = "C",
+                         "donor1" = "A",
+                         "donor2" = "B",
+                         "donor3" = "D")
+```
+
+```{r}
+# Combine "doublet" and "unassigned" into one category, the distinction doesn't seem important
+assignments[assignments$CR == "doublet", ]$CR <- "unassigned"
+assignments[assignments$DR == "doublet", ]$DR <- "unassigned"
+assignments[assignments$DP == "doublet", ]$DP <- "unassigned"
+
+# Redo factor levels
+assignments$CR <- as.factor(as.character(assignments$CR))
+assignments$DR <- as.factor(as.character(assignments$DR))
+assignments$DP <- as.factor(as.character(assignments$DP))
+```
+
+```{r}
+# Look for patterns in cells where there are disagreements
+assignments$disagreement <- ifelse(assignments$CR != assignments$DR |
+                                     assignments$CR != assignments$DP,
+                                   1, 0)
+sce$disagreement <- assignments$disagreement
+table(sce$disagreement)
+```
+```{r}
+plotUMAP(sce, colour_by = "disagreement")
+```
+
+The cells with "disagreements" seem to be more or less randomly distributed. I'm happy with this.
+
+## Compare to hash demultiplexing
+
+One last question: these are extremely concordant, but does one bulk type give a marginal increase in concordance with hash demultiplexing?
+
+```{r}
+#Add hashing results to assignments table
+hashing <- subset(hashing, select = c("Barcodes", "Assignment"))
+setnames(hashing, c("cell", "hash_assignment"))
+assignments <- full_join(hashing, assignments)
+```
+```{r}
+# Switch hash results to A/B/C/D notation
+assignments$H <- assignments$hash_assignment
+assignments[assignments$H == "Blanks" | assignments$H == "Multiplet" | assignments$H == "Unassigned", ]$H <- "unassigned"
+assignments$H <- as.factor(assignments$H)
+assignments$H <- recode(assignments$H,
+                         "anti-human_Hashtag1" = "D",
+                         "anti-human_Hashtag2" = "C",
+                         "anti-human_Hashtag3" = "A",
+                         "anti-human_Hashtag4" = "B")
+```
+
+```{r}
+# Count number of disagreements between hashing and each run of vireo
+length(which(assignments$H != assignments$CR))
+length(which(assignments$H != assignments$DR))
+length(which(assignments$H != assignments$DP))
+
+confusionMatrix(assignments$H, assignments$CR)$table
+confusionMatrix(assignments$H, assignments$DR)$table
+confusionMatrix(assignments$H, assignments$DP)$table
+```
+
+Conclusion: there is only the tiniest of differences in the number of cells that are picked up by genetic demultiplexing but not hash demultiplexing, and literally no difference in the number of cells that get confidently assigned by both. Looks like it doesn't matter.

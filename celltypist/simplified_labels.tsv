@@ -47,10 +47,10 @@ ILC	ILC
 ILC	ILC1
 ILC	ILC2
 ILC	ILC3
-ILC	CD16+ NK cells
-ILC	CD16- NK cells
-ILC	NK cells
-ILC	Transitional NK
+NK cells	CD16+ NK cells
+NK cells	CD16- NK cells
+NK cells	NK cells
+NK cells	Transitional NK
 ILC precursor	ILC precursor
 Macrophages	Hofbauer cells
 Macrophages	Kidney-resident macrophages
