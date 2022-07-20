@@ -25,12 +25,7 @@ suppressPackageStartupMessages({
 
 ```{r options}
 # We have two sets of pooled samples, named after the date they were run (12162021 and 01132022).
-args = commandArgs(trailingOnly = TRUE)
-if (length(args) == 0) {
-  stop("Sample ID must be provided.", call.= FALSE)
-} else {
-  sample_id <- args[1]
-}
+sample_id <- "12162021"
 
 source("../config.R")
 ```
@@ -66,15 +61,14 @@ setnames(dissociated_ribo, "donor_id", "dissociated_ribo_assignment")
 setnames(dissociated_polyA, "donor_id", "dissociated_polyA_assignment")
 
 assignments <- full_join(subset(chunk_ribo, select = c("cell", "chunk_ribo_assignment")),
-                         subset(dissociated_ribo, select = c("cell", "dissociated_ribo_assignment")))
-assignments <- full_join(assignments,
-                         subset(dissociated_polyA, select = c("cell", "dissociated_polyA_assignment")))
+                         subset(dissociated_ribo, select = c("cell", "dissociated_ribo_assignment"))) %>% 
+               full_join(., subset(dissociated_polyA, select = c("cell", "dissociated_polyA_assignment")))
 assignments$chunk_ribo_assignment <- as.factor(assignments$chunk_ribo_assignment)
 assignments$dissociated_ribo_assignment <- as.factor(assignments$dissociated_ribo_assignment)
 assignments$dissociated_polyA_assignment <- as.factor(assignments$dissociated_polyA_assignment)
 ```
 
-# Compare vireo assignments
+## Compare vireo assignments
 
 ```{r}
 # Run confusion matrix
@@ -82,9 +76,11 @@ confusionMatrix(assignments$chunk_ribo_assignment, assignments$dissociated_ribo_
 confusionMatrix(assignments$chunk_ribo_assignment, assignments$dissociated_polyA_assignment)$table
 confusionMatrix(assignments$dissociated_ribo_assignment, assignments$dissociated_polyA_assignment)$table
 ```
+
 There seems to be a lot of concordance across the sets, which is encouraging. I want to check if there are patterns in the off-diagonal cells.
 
 Since donor labels are assigned randomly, all "donor2" cells in chunk_ribo might be called "donor0" in dissociated_ribo. I'll have to manually reassign them to a new name. I'll use A, B, C, and D.
+
 ```{r}
 assignments$CR <- assignments$chunk_ribo_assignment
 assignments$CR <- recode(assignments$CR,
@@ -131,7 +127,8 @@ table(sce$disagreement)
 ```{r}
 plotUMAP(sce, colour_by = "disagreement")
 ```
-The cells with "disagreements" seem to be more or less randomly distributed. I'm happy wtih this.
+
+The cells with "disagreements" seem to be more or less randomly distributed. I'm happy with this.
 
 ## Compare to hash demultiplexing
 
