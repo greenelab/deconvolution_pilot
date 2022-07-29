@@ -1,13 +1,14 @@
 ---
-title: "Differential expression: Chunk vs dissociated"
+title: "Differential expression: rRNA depletion vs poly-A capture"
 author: "Ariel Hippen"
-date: '2022-07-25'
+date: '2022-07-28'
 output: 
   html_document:
     toc: true
     toc_depth: 4
     toc_float:
       collapsed: false
+
 ---
 
 ```{r setup, include=FALSE}
@@ -16,10 +17,9 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 # DESeq2 pipeline
 
-This project has two aims that focus on comparing the differential expression of bulk RNA-seq. This one assesses the effect of dissociation by comparing paired tumor samples that were sequenced as chunks vs. dissociated and then bulk sequenced. The second will assess the difference between dissociated cells that have been rRNA-depleted vs those that have been 3'/poly-A captured.
+This project has two aims that focus on comparing the differential expression of bulk RNA-seq. This one assesses the difference between dissociated cells that have been rRNA-depleted vs those that have been 3'/poly-A captured. The previous one assessed the effect of dissociation by comparing paired tumor samples that were sequenced as chunks vs. dissociated and then bulk sequenced.
 
 For preliminary assessment of the DE results, we will be following the DESeq2 tutorial: https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html
-(With some references to https://bioconductor.org/packages/devel/workflows/vignettes/rnaseqGene/inst/doc/rnaseqGene.html#exploratory-analysis-and-visualization)
 
 ```{r packages}
 suppressPackageStartupMessages({
@@ -37,19 +37,19 @@ source("../config.R")
 ## Load data
 
 ```{r}
-# Get paths to STAR.counts files for all ribosomal depleted samples
+# Get paths to STAR.counts files for all dissociated samples
 directory <- paste(data_path, "bulk_tumors", sep = "/")
 sampleFiles <- list.files(directory, recursive = TRUE, full.names = TRUE)
 sampleFiles <- grep("ReadsPerGene.out.tab", sampleFiles, value=TRUE)
-sampleFiles <- grep("ribo",sampleFiles, value=TRUE)
+sampleFiles <- grep("dissociated",sampleFiles, value=TRUE)
 ```
 
 DESeq expects a metadata table to pass into the colData part of a SummarizedExperiment object. We'll prep it here.
 
 ```{r}
 sampleNames <- gsub(".*/(\\d+)/.*", "\\1", sampleFiles)
-sampleCondition <- ifelse(1:16 %in% grep("chunk", sampleFiles),
-                          "chunk", "dissociated")
+sampleCondition <- ifelse(1:16 %in% grep("ribo", sampleFiles),
+                          "ribo", "polyA")
 samplePool <- ifelse(sampleNames %in% c("2251","2428","2467","2497"),
                      "01132022","12162021")
 sampleUnique <- paste(sampleNames,sampleCondition,sep="_")
@@ -102,10 +102,10 @@ dds <- dds[keep, ]
 
 ## Differential expression
 
-If you don't set the condition factor specifically, it can be hard to tell if A is upregulated compared to B or vice versa. We'll set "chunk_ribo" as the reference and look at how dissociated_ribo is upregulated or downregulated compared to that.
+If you don't set the condition factor specifically, it can be hard to tell if A is upregulated compared to B or vice versa. We'll set "ribo" as the reference and look at how dissociated_polyA is upregulated or downregulated compared to that.
 
 ```{r}
-dds$condition <- relevel(dds$condition, ref = "chunk")
+dds$condition <- relevel(dds$condition, ref = "ribo")
 ```
 
 ```{r}
@@ -118,7 +118,7 @@ res
 The tutorial says "shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes. To shrink the LFC, we pass the dds object to the function lfcShrink. We provide the dds object and the name or number of the coefficient we want to shrink."
 
 ```{r}
-resLFC <- lfcShrink(dds, coef="condition_dissociated_vs_chunk", type="apeglm")
+resLFC <- lfcShrink(dds, coef="condition_polyA_vs_ribo", type="apeglm")
 resLFC
 ```
 
@@ -160,7 +160,7 @@ meanSdPlot(assay(ntd))
 meanSdPlot(assay(vsd))
 meanSdPlot(assay(rld))
 ```
-Okay, none of these are *too* heteroskedastic, but the vsd and rlog look slightly better. I'll use this transformation for the sample comparisons.
+Okay, regular and rlog look okay, vst looks more heteroskedastic now. I'll use rlog for the sample comparisons.
 
 ### Heatmap
 
@@ -194,7 +194,7 @@ pheatmap(sampleDistMatrix,
          col=colors)
 ```
 
-There's not a ton of clear structure here. It's not exclusively clustering by sample or by dissociation status but by some combination of both. Wonder how this will look on a PCA.
+The structure looks very sample-specific here.
 
 ```{r}
 pcaData <- plotPCA(rld, intgroup=c("condition", "sample"), returnData=TRUE)
@@ -206,34 +206,35 @@ ggplot(pcaData, aes(PC1, PC2, color=sample, shape=condition)) +
   coord_fixed()
 ```
 
-With a couple of exceptions, the samples seem to be largely clustering together, not as much by dissociation status. But it's also worth noting that the purple and blue samples, which do seem to be clustering by dissociation status, had relatively low RIN scores (<7). Maybe a coincidence but maybe not.
+Whoa. PC2 is obviously ribo depletion, it's almost a little disturbing how perfect the shift is. Not sure what PC1 is besides that it's sample-specific. It doesn't seem to have any relationship to RIN scores, though.
 
-For thoroughness, I'm going to check and see if dissociation status is represented in PCs 3 or 4. I'm going to use the PCAtools tutorial (https://bioconductor.org/packages/release/bioc/vignettes/PCAtools/inst/doc/PCAtools.html) for this.
+For thoroughness, I'm going to check the lower PCs. I'm going to use the PCAtools tutorial (https://bioconductor.org/packages/release/bioc/vignettes/PCAtools/inst/doc/PCAtools.html) for this.
 
 ```{r}
 p <- pca(assay(rld), metadata = colData(rld), removeVar = 0.1)
 screeplot(p, axisLabSize = 18, titleLabSize = 22)
 ```
+
 ```{r}
 pairsplot(p, colby = "condition")
 ```
 
-It looks like PC3 is dissociation status. 
+PC1 is still a bit of a mystery, PC2 is mRNA enrichment method, and PC3-5 also seem to be some sort of sample-specific structure.
 
 ## Conclusions
 
-- There is definitely some differential expression happening between the chunk samples and the dissociated samples, with slightly more differentially upregulated genes in the dissociated cells.
+- There is definitely differential expression happening between the ribo-depleted and poly-A captured cells, with what seems like more differentially upregulated genes in the poly-A cells.
 - Our data may benefit from rlog transformation but it doesn't make a huge difference to downstream results.
-- At a high level, our samples are clustering more by patient than by dissociation status, but not perfectly, particularly in the lower quality data (the ones with lower RIN scores).
-- Dissociation status is definitely informing samples' distance from one another, but it's not the predominant factor (it's roughly the third principal component).
+- At a high level, our samples are clustering mostly by patient.
+- mRNA enrichment method is definitely informing samples' distance from one another, as the second principal component.
 
 With this information in hand, we'll try to analyze our differential expression results with GSEA.
 
 ```{r}
 # Save data
-saveRDS(dds, file="chunk_vs_dissociated_data.rds")
+saveRDS(dds, file="ribo_vs_polyA_data.rds")
 
 # Save results files
-saveRDS(res, file="chunk_vs_dissociated_FDR_0.1.rds")
-saveRDS(res05, file="chunk_vs_dissociated_FDR_0.05.rds")
+saveRDS(res, file="ribo_vs_polyA_FDR_0.1.rds")
+saveRDS(res05, file="ribo_vs_polyA_FDR_0.05.rds")
 ```
