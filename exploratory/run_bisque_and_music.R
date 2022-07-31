@@ -47,7 +47,6 @@ single_cell <- ExpressionSet(as.matrix(assay(sce)), phenoData = pheno)
 
 # Load bulk data into ExpressionSet object
 bulk_matrix <- matrix()
-samples <- c("2251", "2267", "2283", "2293", "2380", "2428", "2467", "2497")
 for (i in 1:length(samples)) {
   sample_id <- samples[i]
   bulk_tmp_file <- paste(data_path, "bulk_tumors", sample_id,
