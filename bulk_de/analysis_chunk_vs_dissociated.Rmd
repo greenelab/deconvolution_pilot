@@ -152,15 +152,10 @@ head(subset(C8_05, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR"
 tail(subset(C8_05, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
 ```
 
-## Misc
-
-```{r}
-gene <- "HBB"
-geneCounts <- plotCounts(dds, gene = gene, intgroup = c("sample","condition"),
-                         returnData = TRUE)
-ggplot(geneCounts, aes(x = condition, y = count, color = sample, group = sample)) +
-  scale_y_log10() + geom_point(size = 3) + geom_line() + ggtitle(gene)
-
-```
-
 ## Conclusions
+
+The main things being lost in dissociation are red blood cells and adipose tissue. The latter makes sense, because it's documented that it's very hard to get adipose tissue to dissociate cleanly, and as such it's much more prevalent in single-nucleus RNA-seq than single cell. Still need to figure out the reason for the loss of red blood cells in dissociation.
+
+The dissociated samples seem to have an enrichment of fibroblasts, endothelial cells, and immune cells. I imagine this means they're being sequenced to a higher depth since they're not competing with adipose tissue.
+
+Still not totally sure what this means for the cancer cells. Probably more analysis is needed there.

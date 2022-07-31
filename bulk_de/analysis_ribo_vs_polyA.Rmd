@@ -158,15 +158,9 @@ head(subset(C8_05, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR"
 ```
 Same here, a lot of smooth muscle cells and fibroblast-looking things. Not sure how confident I am in this gene set though.
 
-## Misc
-```{r}
-gene <- "RPS18"
-geneCounts <- plotCounts(dds, gene = gene, intgroup = c("sample","condition"),
-                         returnData = TRUE)
-ggplot(geneCounts, aes(x = condition, y = count, color = sample, group = sample)) +
-  scale_y_log10() + geom_point(size = 3) + geom_line() + ggtitle(gene)
-
-```
-
 
 ## Conclusions
+
+The genes that are most upregulated in the rRNA depletion are the genes encoding histones and "RNAs with jobs", like telomerase RNA and endoribonucleases. I'm not totally sure why, my quick literature review seems to indicate they should still be polyadenylated, but perhaps not.
+
+The genes that are most upregulated in the poly-A capture are mitochondrial genes (still need to look into why that is), and ribosomal-associated genes (not surprising).
