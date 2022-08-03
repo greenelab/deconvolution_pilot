@@ -20,6 +20,7 @@ if (length(args)==0) {
 }
 
 # Load hashing demultiplexing assignment info to get barcodes to keep
+# Note: variable data_path is loaded from config.R
 hashing <- fread(paste(data_path, "pooled_tumors", sample_id,
 		       "Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv", sep = "/"))
 

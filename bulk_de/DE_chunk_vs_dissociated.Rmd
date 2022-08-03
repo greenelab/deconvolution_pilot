@@ -10,7 +10,7 @@ output:
       collapsed: false
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
@@ -38,38 +38,44 @@ source("../config.R")
 
 ```{r}
 # Get paths to STAR.counts files for all ribosomal depleted samples
+# Note: data_path is a variable loaded from config.R
 directory <- paste(data_path, "bulk_tumors", sep = "/")
 sampleFiles <- list.files(directory, recursive = TRUE, full.names = TRUE)
-sampleFiles <- grep("ReadsPerGene.out.tab", sampleFiles, value=TRUE)
-sampleFiles <- grep("ribo",sampleFiles, value=TRUE)
+sampleFiles <- grep("ReadsPerGene.out.tab", sampleFiles, value = TRUE)
+sampleFiles <- grep("ribo", sampleFiles, value = TRUE)
 ```
 
 DESeq expects a metadata table to pass into the colData part of a SummarizedExperiment object. We'll prep it here.
 
 ```{r}
+# Pull sample ids out of full path names. Their ids should be one directory in
+# the path and the only exclusively numeric one, hence the regex.
 sampleNames <- gsub(".*/(\\d+)/.*", "\\1", sampleFiles)
 sampleCondition <- ifelse(1:16 %in% grep("chunk", sampleFiles),
                           "chunk", "dissociated")
-samplePool <- ifelse(sampleNames %in% c("2251","2428","2467","2497"),
-                     "01132022","12162021")
-sampleUnique <- paste(sampleNames,sampleCondition,sep="_")
+sampleUnique <- paste(sampleNames, sampleCondition, sep = "_")
 colData <- data.frame(id = sampleUnique,
                       sample = sampleNames,
-                      pool = samplePool,
                       fileName = sampleFiles,
                       condition = sampleCondition)
 colData$condition <- factor(colData$condition)
+
+colData
 ```
 
 Now we can load in the files and create a counts matrix. Note that this shouldn't be stranded data, so we'll use column 2 of the STAR counts files.
 
 ```{r}
-counts <- matrix(nrow=36601, ncol = nrow(colData))
+counts <- matrix(nrow = 36601, ncol = nrow(colData))
 for (i in 1:nrow(colData)){
   newcounts <- fread(colData$fileName[i])
-  newcounts <- newcounts[-c(1:4),]
+  newcounts <- newcounts[-c(1:4), ]
   counts[, i] <- newcounts$V2
-  rownames(counts) <- newcounts$V1
+  if (i == 1) {
+	rownames(counts) <- newcounts$V1
+  } else{
+	  assert(rownames(counts) == newcounts$V1)
+  }
 }
 rm(newcounts); gc()
 ```
@@ -78,8 +84,8 @@ This counts matrix has the genes listed by their Ensembl IDs, which is helpful f
 
 ```{r}
 sce <- readRDS("../sce_objects/pooled_clustered_50.rds")
-gene_map <- as.data.frame(subset(rowData(sce), select=c("ID","Symbol")))
-gene_map <- gene_map[rownames(counts)==gene_map$ID,]
+gene_map <- as.data.frame(subset(rowData(sce), select = c("ID", "Symbol")))
+gene_map <- gene_map[rownames(counts) == gene_map$ID, ]
 rownames(counts) <- gene_map$Symbol
 rm(sce); gc()
 ```
@@ -93,10 +99,10 @@ dds <- DESeqDataSetFromMatrix(countData = counts,
 dds
 ```
 
-The tutorial recommends doing some basic pre-filtering both to speed up computation and to clean up later visualizations. We'll remove any row that has fewer than 10 reads.
+The tutorial recommends doing some basic pre-filtering to speed up computation, estimate the library depth correction factor, and to clean up later visualizations. We'll remove any row that has fewer than 10 reads.
 
 ```{r}
-keep <- rowSums(counts(dds)) >= 10
+keep <- rowSums(counts(dds)) > = 10
 dds <- dds[keep, ]
 ```
 
@@ -118,7 +124,7 @@ res
 The tutorial says "shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes. To shrink the LFC, we pass the dds object to the function lfcShrink. We provide the dds object and the name or number of the coefficient we want to shrink."
 
 ```{r}
-resLFC <- lfcShrink(dds, coef="condition_dissociated_vs_chunk", type="apeglm")
+resLFC <- lfcShrink(dds, coef = "condition_dissociated_vs_chunk", type = "apeglm")
 resLFC
 ```
 
@@ -131,7 +137,7 @@ sum(res$padj  < 0.1, na.rm = TRUE)
 ```
 
 ```{r}
-res05 <- results(dds, alpha=0.05)
+res05 <- results(dds, alpha = 0.05)
 summary(res05)
 
 sum(res05$padj < 0.05, na.rm = TRUE)
@@ -141,16 +147,17 @@ sum(res05$padj < 0.05, na.rm = TRUE)
 From tutorial: "In DESeq2, the function plotMA shows the log2 fold changes attributable to a given variable over the mean of normalized counts for all the samples in the DESeqDataSet. Points will be colored blue if the adjusted p value is less than 0.1. Points which fall out of the window are plotted as open triangles pointing either up or down."
 
 ```{r}
-plotMA(res, ylim=c(-2,2))
-plotMA(resLFC, ylim=c(-2,2))
+plotMA(res, ylim = c(-2, 2))
+plotMA(resLFC, ylim = c(-2, 2))
 ```
+
 ### Transformations
 
 The DESeq2 authors recommend the rlog method to adjust for heteroskedasticity in experiments with n < 30. We'll check it and the other vst method they recommend for n > 30.
 
 ```{r}
-vsd <- vst(dds, blind=FALSE)
-rld <- rlog(dds, blind=FALSE)
+vsd <- vst(dds, blind = FALSE)
+rld <- rlog(dds, blind = FALSE)
 ```
 
 The meanSdPlot plots the mean (as ranked values) by standard deviation, if there is heteroskedasticity there should be a flat line across the values, but they say we shouldn't expect it to be perfectly straight.
@@ -162,47 +169,30 @@ meanSdPlot(assay(rld))
 ```
 Okay, none of these are *too* heteroskedastic, but the vsd and rlog look slightly better. I'll use this transformation for the sample comparisons.
 
-### Heatmap
-
-Next we'll look at a heatmap of the samples together.
-```{r}
-select <- order(rowMeans(counts(dds,normalized=TRUE)),
-                decreasing=TRUE)[1:20]
-df <- as.data.frame(colData(dds)[,c("condition","sample")])
-pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=FALSE, annotation_col=df)
-pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=FALSE, annotation_col=df)
-pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=FALSE, annotation_col=df)
-```
-
-Okay, I don't see any major differences between the transformation types.
-
 ## Sample comparisons
 
 ```{r}
 sampleDists <- dist(t(assay(rld)))
 
 sampleDistMatrix <- as.matrix(sampleDists)
-rownames(sampleDistMatrix) <- paste(rld$condition, rld$sample, sep="-")
+rownames(sampleDistMatrix) <- paste(rld$condition, rld$sample, sep = "-")
 colnames(sampleDistMatrix) <- NULL
 colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 pheatmap(sampleDistMatrix,
-         clustering_distance_rows=sampleDists,
-         clustering_distance_cols=sampleDists,
-         col=colors)
+         clustering_distance_rows = sampleDists,
+         clustering_distance_cols = sampleDists,
+         col = colors)
 ```
 
 There's not a ton of clear structure here. It's not exclusively clustering by sample or by dissociation status but by some combination of both. Wonder how this will look on a PCA.
 
 ```{r}
-pcaData <- plotPCA(rld, intgroup=c("condition", "sample"), returnData=TRUE)
+pcaData <- plotPCA(rld, intgroup = c("condition", "sample"), returnData = TRUE)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
-ggplot(pcaData, aes(PC1, PC2, color=sample, shape=condition)) +
-  geom_point(size=3) +
-  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
-  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+ggplot(pcaData, aes(PC1, PC2, color = sample, shape = condition)) +
+  geom_point(size = 3) +
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance")) + 
   coord_fixed()
 ```
 
@@ -231,9 +221,9 @@ With this information in hand, we'll try to analyze our differential expression 
 
 ```{r}
 # Save data
-saveRDS(dds, file="chunk_vs_dissociated_data.rds")
+saveRDS(dds, file = "chunk_vs_dissociated_data.rds")
 
 # Save results files
-saveRDS(res, file="chunk_vs_dissociated_FDR_0.1.rds")
-saveRDS(res05, file="chunk_vs_dissociated_FDR_0.05.rds")
+saveRDS(res, file = "chunk_vs_dissociated_FDR_0.1.rds")
+saveRDS(res05, file = "chunk_vs_dissociated_FDR_0.05.rds")
 ```

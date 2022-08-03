@@ -46,6 +46,7 @@ pheno <- AnnotatedDataFrame(data = phenos, varMetadata = pheno_metadata)
 single_cell <- ExpressionSet(as.matrix(assay(sce)), phenoData = pheno)
 
 # Load bulk data into ExpressionSet object
+# Note: data_path is loaded from config.R
 bulk_matrix <- matrix()
 for (i in 1:length(samples)) {
   sample_id <- samples[i]
