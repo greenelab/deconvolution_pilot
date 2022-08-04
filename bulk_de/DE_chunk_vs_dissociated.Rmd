@@ -29,6 +29,7 @@ suppressPackageStartupMessages({
   library(pheatmap)
   library(RColorBrewer)
   library(PCAtools)
+  library(testit)
 })
 
 source("../config.R")
@@ -99,10 +100,20 @@ dds <- DESeqDataSetFromMatrix(countData = counts,
 dds
 ```
 
-The tutorial recommends doing some basic pre-filtering to speed up computation, estimate the library depth correction factor, and to clean up later visualizations. We'll remove any row that has fewer than 10 reads.
+The tutorial recommends doing some basic pre-filtering of non- or low-expressed genes to speed up computation, estimate the library depth correction factor, and to clean up later visualizations. 
 
 ```{r}
-keep <- rowSums(counts(dds)) > = 10
+colnames(counts) <- colData$id
+melted_counts <- melt(counts)
+melted_counts$logcounts <- log10(melted_counts$value+1)
+
+ggplot(melted_counts, aes(x=Var2, y=logcounts)) + geom_boxplot()
+```
+
+Okay, <25% of the genes have 0 reads. We'll keep it fairly broad and only remove any gene that has fewer than 10 reads total.
+
+```{r}
+keep <- rowSums(counts(dds)) >= 10
 dds <- dds[keep, ]
 ```
 
@@ -142,6 +153,7 @@ summary(res05)
 
 sum(res05$padj < 0.05, na.rm = TRUE)
 ```
+
 ### Plotting results
 
 From tutorial: "In DESeq2, the function plotMA shows the log2 fold changes attributable to a given variable over the mean of normalized counts for all the samples in the DESeqDataSet. Points will be colored blue if the adjusted p value is less than 0.1. Points which fall out of the window are plotted as open triangles pointing either up or down."
@@ -161,12 +173,14 @@ rld <- rlog(dds, blind = FALSE)
 ```
 
 The meanSdPlot plots the mean (as ranked values) by standard deviation, if there is heteroskedasticity there should be a flat line across the values, but they say we shouldn't expect it to be perfectly straight.
+
 ```{r}
 ntd <- normTransform(dds)
 meanSdPlot(assay(ntd))
 meanSdPlot(assay(vsd))
 meanSdPlot(assay(rld))
 ```
+
 Okay, none of these are *too* heteroskedastic, but the vsd and rlog look slightly better. I'll use this transformation for the sample comparisons.
 
 ## Sample comparisons
@@ -184,7 +198,14 @@ pheatmap(sampleDistMatrix,
          col = colors)
 ```
 
-There's not a ton of clear structure here. It's not exclusively clustering by sample or by dissociation status but by some combination of both. Wonder how this will look on a PCA.
+The above is based on Euclidean distances, which can be unreliable in a high-dimensional space like gene expression data. Let's plot the correlations between samples.
+
+```{r corr_plot}
+x<-cor(counts)
+pheatmap(x)
+```
+
+There's not a ton of clear structure in either plot. It's not exclusively clustering by sample or by dissociation status but by some combination of both. Wonder how this will look on a PCA.
 
 ```{r}
 pcaData <- plotPCA(rld, intgroup = c("condition", "sample"), returnData = TRUE)
@@ -204,8 +225,8 @@ For thoroughness, I'm going to check and see if dissociation status is represent
 p <- pca(assay(rld), metadata = colData(rld), removeVar = 0.1)
 screeplot(p, axisLabSize = 18, titleLabSize = 22)
 ```
-```{r}
-pairsplot(p, colby = "condition")
+```{r, fig.dim=c(12,12)}
+pairsplot(p, colby = "condition", pointSize = 2)
 ```
 
 It looks like PC3 is dissociation status. 

@@ -28,6 +28,7 @@ suppressPackageStartupMessages({
   library(pheatmap)
   library(RColorBrewer)
   library(PCAtools)
+  library(testit)
 })
 
 source("../config.R")
@@ -68,7 +69,11 @@ for (i in 1:8){
   newcounts <- fread(sampleFiles[i])
   newcounts <- newcounts[-c(1:4),]
   counts[, i] <- newcounts$V2
-  rownames(counts) <- newcounts$V1
+  if (i == 1) {
+	rownames(counts) <- newcounts$V1
+  } else{
+	  assert(rownames(counts) == newcounts$V1)
+  }
 }
 rm(newcounts); gc()
 ```
@@ -81,7 +86,6 @@ counts <- cbind(counts, pseudo)
 colnames(counts) <- colData$id
 rm(pseudo); gc()
 ```
-
 
 This counts matrix has the genes listed by their Ensembl IDs, which is helpful for uniqueness but bad for readability in the downstream analysis. The easiest way I've found to convert ensembl IDs to gene names for this dataset is by loading in a SingleCellExperiment object from the same experiment, where this mapping is automatically stored.
 
@@ -102,10 +106,20 @@ dds <- DESeqDataSetFromMatrix(countData = counts,
 dds
 ```
 
-The tutorial recommends doing some basic pre-filtering both to speed up computation and to clean up later visualizations. We'll remove any row that has fewer than 10 reads.
+The tutorial recommends doing some basic pre-filtering of non- or low-expressed genes to speed up computation, estimate the library depth correction factor, and to clean up later visualizations. 
 
 ```{r}
-keep <- rowSums(counts(dds)) >= 10
+colnames(counts) <- colData$id
+melted_counts <- melt(counts)
+melted_counts$logcounts <- log10(melted_counts$value+1)
+
+ggplot(melted_counts, aes(x=Var2, y=logcounts)) + geom_boxplot()
+```
+
+Okay, in some of the samples at least 25% of the genes are not expressed. Let's go a little more conservative and remove any genes that have fewer than 20 reads total.
+
+```{r}
+keep <- rowSums(counts(dds)) >= 20
 dds <- dds[keep, ]
 ```
 
@@ -145,6 +159,7 @@ summary(res05)
 
 sum(res05$padj < 0.05, na.rm = TRUE)
 ```
+
 So it seems like there are more genes downregulated than up (meaning there are more genes more highly expressed in true bulk than in pseudobulk). This is what we'd expect, given the technical dropouts of scRNA-seq, but it's worth noting there's still a *lot* of genes upregulated, aka more expressed in pseudobulk than in true bulk.
 
 ### Plotting results
@@ -155,6 +170,7 @@ From tutorial: "In DESeq2, the function plotMA shows the log2 fold changes attri
 plotMA(res, ylim=c(-2,2))
 plotMA(resLFC, ylim=c(-2,2))
 ```
+
 ### Transformations
 
 The DESeq2 authors recommend the rlog method to adjust for heteroskedasticity in experiments with n < 30. We'll check it and the other vst method they recommend for n > 30.
@@ -165,30 +181,15 @@ rld <- rlog(dds, blind=FALSE)
 ```
 
 The meanSdPlot plots the mean (as ranked values) by standard deviation, if there is heteroskedasticity there should be a flat line across the values, but they say we shouldn't expect it to be perfectly straight.
+
 ```{r}
 ntd <- normTransform(dds)
 meanSdPlot(assay(ntd))
 meanSdPlot(assay(vsd))
 meanSdPlot(assay(rld))
 ```
+
 Okay, none of these are *too* heteroskedastic, but the normal and rlog look slightly better than vsd. I'll use rlog for the sample comparisons.
-
-### Heatmap
-
-Next we'll look at a heatmap of the samples together.
-```{r}
-select <- order(rowMeans(counts(dds,normalized=TRUE)),
-                decreasing=TRUE)[1:20]
-df <- as.data.frame(colData(dds)[,c("condition","sample")])
-pheatmap(assay(ntd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=FALSE, annotation_col=df)
-pheatmap(assay(vsd)[select,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=FALSE, annotation_col=df)
-pheatmap(assay(rld)[select,], cluster_rows=FALSE, show_rownames=FALSE,
-         cluster_cols=FALSE, annotation_col=df)
-```
-
-Okay, I don't see any major differences between the transformation types.
 
 ## Sample comparisons
 
@@ -203,9 +204,12 @@ pheatmap(sampleDistMatrix,
          clustering_distance_rows=sampleDists,
          clustering_distance_cols=sampleDists,
          col=colors)
+
+x<-cor(counts)
+pheatmap(x)
 ```
 
-There's not a ton of clear structure here. It's not exclusively clustering by sample or by dissociation status but by some combination of both. Wonder how this will look on a PCA.
+The separation is clearly sequencing type-specific.
 
 ```{r}
 pcaData <- plotPCA(rld, intgroup=c("condition", "sample"), returnData=TRUE)
@@ -226,8 +230,8 @@ p <- pca(assay(rld), metadata = colData(rld), removeVar = 0.1)
 screeplot(p, axisLabSize = 18, titleLabSize = 22)
 ```
 
-```{r}
-pairsplot(p, colby = "sample")
+```{r, fig.dim=c(12,12)}
+pairsplot(p, colby = "sample", pointSize=2)
 ```
 
 Okay, PCs 2-5 seem to be roughly based on sample, but the overwhelming distinction is sequencing type.

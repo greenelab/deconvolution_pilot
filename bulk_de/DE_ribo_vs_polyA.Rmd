@@ -29,6 +29,7 @@ suppressPackageStartupMessages({
   library(pheatmap)
   library(RColorBrewer)
   library(PCAtools)
+  library(testit)
 })
 
 source("../config.R")
@@ -99,10 +100,20 @@ dds <- DESeqDataSetFromMatrix(countData = counts,
 dds
 ```
 
-The tutorial recommends doing some basic pre-filtering to speed up computation, estimate the library depth correction factor, and to clean up later visualizations. We'll remove any row that has fewer than 10 reads.
+The tutorial recommends doing some basic pre-filtering of non- or low-expressed genes to speed up computation, estimate the library depth correction factor, and to clean up later visualizations. 
 
 ```{r}
-keep <- rowSums(counts(dds)) > = 10
+colnames(counts) <- colData$id
+melted_counts <- melt(counts)
+melted_counts$logcounts <- log10(melted_counts$value+1)
+
+ggplot(melted_counts, aes(x=Var2, y=logcounts)) + geom_boxplot()
+```
+
+Okay, in some of the samples at least 25% of the genes are not expressed. Let's go a little more conservative and remove any genes that have fewer than 20 reads total.
+
+```{r}
+keep <- rowSums(counts(dds)) >= 20
 dds <- dds[keep, ]
 ```
 
@@ -142,6 +153,7 @@ summary(res05)
 
 sum(res05$padj < 0.05, na.rm = TRUE)
 ```
+
 ### Plotting results
 
 From tutorial: "In DESeq2, the function plotMA shows the log2 fold changes attributable to a given variable over the mean of normalized counts for all the samples in the DESeqDataSet. Points will be colored blue if the adjusted p value is less than 0.1. Points which fall out of the window are plotted as open triangles pointing either up or down."
@@ -184,7 +196,14 @@ pheatmap(sampleDistMatrix,
          col = colors)
 ```
 
-The structure looks very sample-specific here.
+The structure looks fairly sample-specific here.
+
+```{r}
+x<-cor(counts)
+pheatmap(x)
+```
+
+Wow! The correlations are highly based on condition, not sample. Let's see how the PCA looks.
 
 ```{r}
 pcaData <- plotPCA(rld, intgroup = c("condition", "sample"), returnData = TRUE)
@@ -205,8 +224,8 @@ p <- pca(assay(rld), metadata = colData(rld), removeVar = 0.1)
 screeplot(p, axisLabSize = 18, titleLabSize = 22)
 ```
 
-```{r}
-pairsplot(p, colby = "condition")
+```{r, fig.dim=c(12,12)}
+pairsplot(p, colby = "condition", pointSize=2)
 ```
 
 PC1 is still a bit of a mystery, PC2 is mRNA enrichment method, and PC3-5 also seem to be some sort of sample-specific structure.
