@@ -1,0 +1,174 @@
+---
+title: "analysis_polyA_vs_pseudo"
+author: "Ariel Hippen"
+date: '2022-07-31'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analyzing differential expression results
+
+We have calculated differential expression genes in DE_ribo_vs_polyA.Rmd, now we will try to make sense of them. Our main workhorse will be Gene Set Enrichment Analysis (GSEA) across several reference sets.
+
+```{r libraries}
+suppressPackageStartupMessages({
+  library(DESeq2)
+  library(WebGestaltR)
+  library(ggplot2)
+})
+```
+
+```{r}
+# Load the DESeq2 object with the original count matrix
+deseq_path <- paste(local_data_path, "deseq2_results", sep = "/")
+dds <- readRDS(paste(deseq_path, "polyA_vs_pseudo_data.rds", sep = "/"))
+
+# Load the DESeqResults object with differentially expressed genes, at FDR 0.1 and 0.05
+res1 <- readRDS(paste(deseq_path, "polyA_vs_pseudo_FDR_0.1.rds", sep = "/"))
+res05 <- readRDS(paste(deseq_path, "polyA_vs_pseudo_FDR_0.05.rds", sep = "/"))
+```
+
+## Top genes
+
+Let's look at the top 20 most upregulated and downregulated genes and see if we can find a pattern.
+
+```{r}
+res1 <- subset(res1, res1$padj < 0.1)
+res1 <- res1[order(res1$log2FoldChange), ]
+as.data.frame(head(res1, n=20))
+```
+
+Reminder, these ^ are the ones that are much more expressed in true bulk than in pseudobulk. This looks like a lot of lncRNAs. None of the genes jump out as significant (except for maybe the immunoglobulin gene IHGJ3P). 
+
+```{r}
+as.data.frame(tail(res1, n=20))
+```
+
+These ^ are the genes that are much more expressed in pseudobulk than true bulk. There are two histone genes, which I find interesting. I'm also interested that there's more MIF and DDT, which are apparently closely related inflammatory cytokines. It could be a coincidence though if there just happened to be more macrophages in that set.
+
+GeneCards says both EVA1B and SFT2D3 are "predicted to be an integral component of membrane"... is that anything?
+
+## GSEA
+
+WebGestaltR expects a data frame with two columns, gene name and fold change.
+
+```{r}
+res1$gene <- rownames(res1); rownames(res1) <- NULL
+res1 <- subset(res1, select=c("gene","log2FoldChange"))
+res1 <- as.data.frame(res1)
+nrow(res1)
+
+res05 <- subset(res05, res05$padj < 0.05)
+res05$gene <- rownames(res05); rownames(res05) <- NULL
+res05 <- subset(res05, select=c("gene","log2FoldChange"))
+res05 <- as.data.frame(res05)
+nrow(res05)
+```
+### GO Biological process
+
+Our first try at GSEA will use the same reference set we used for overrepresentation analysis in the single-cell data, GO Biological process.
+
+```{r}
+GO_bp <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                          enrichDatabase = "geneontology_Biological_Process_noRedundant",
+                          interestGene = res1,
+                          interestGeneType = "genesymbol",
+                          isOutput = FALSE))
+
+nrow(GO_bp)
+GO_bp <- GO_bp[order(GO_bp$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(GO_bp, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+tail(subset(GO_bp, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+
+```{r}
+GO_bp_05 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                             enrichDatabase = "geneontology_Biological_Process_noRedundant",
+                             interestGene = res05,
+                             interestGeneType = "genesymbol",
+                             isOutput = FALSE))
+
+nrow(GO_bp_05)
+GO_bp_05 <- GO_bp_05[order(GO_bp_05$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(GO_bp_05, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+tail(subset(GO_bp_05, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+
+### GO Cellular Component
+
+```{r}
+GO_cc <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                             enrichDatabase = "geneontology_Cellular_Component_noRedundant",
+                             interestGene = res05,
+                             interestGeneType = "genesymbol",
+                             isOutput = FALSE))
+
+nrow(GO_cc)
+GO_cc <- GO_cc[order(GO_cc$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(GO_cc, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+tail(subset(GO_cc, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+
+```{r}
+GO_cc_05 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                             enrichDatabase = "geneontology_Cellular_Component_noRedundant",
+                             interestGene = res05,
+                             interestGeneType = "genesymbol",
+                             isOutput = FALSE))
+
+nrow(GO_cc_05)
+GO_cc_05 <- GO_cc_05[order(GO_cc_05$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(GO_cc_05, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+tail(subset(GO_cc_05, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+
+
+### Cell types
+
+Let's try a custom set for cell types, as curated by the folks at http://www.gsea-msigdb.org/
+
+```{r}
+C8 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                       enrichDatabaseFile = "GSEA_custom_sets/c8.all.v7.5.1.symbols.gmt",
+                       enrichDatabaseType = "genesymbol",
+                       interestGene = res1,
+                       interestGeneType = "genesymbol",
+                       isOutput = FALSE))
+
+nrow(C8)
+C8 <- C8[order(C8$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(C8, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+tail(subset(C8, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+
+```
+
+
+```{r}
+C8_05 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                       enrichDatabaseFile = "GSEA_custom_sets/c8.all.v7.5.1.symbols.gmt",
+                       enrichDatabaseType = "genesymbol",
+                       interestGene = res05,
+                       interestGeneType = "genesymbol",
+                       isOutput = FALSE))
+
+nrow(C8_05)
+C8_05 <- C8_05[order(C8_05$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(C8_05, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+tail(subset(C8_05, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+
+
+
+```{r}
+gene <- "MT-ATP6"
+d <- plotCounts(dds, gene=gene, intgroup=c("condition","sample"), returnData=TRUE)
+ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
+  geom_point() + scale_y_log10() + geom_line()
+```
+
+
+
+## Conclusions

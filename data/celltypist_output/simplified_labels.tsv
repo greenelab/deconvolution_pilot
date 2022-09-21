@@ -1,0 +1,91 @@
+Simplified	Original
+B cells	B cells
+B cells	Follicular B cells
+B cells	Germinal center B cells
+B cells	Memory B cells
+B cells	Naive B cells
+B cells	Transitional B cells
+B cells	Large pre-B cells
+B cells	Small pre-B cells
+B cells	Pre-pro-B cells
+B cells	Pro-B cells
+Cycling cells	Cycling B cells
+Cycling cells	Cycling DCs
+Cycling cells	Cycling gamma-delta T cells
+Cycling cells	Cycling monocytes
+Cycling cells	Cycling NK cells
+Cycling cells	Cycling T cells
+DC	DC
+DC	DC1
+DC	DC2
+DC	DC3
+DC	Migratory DCs
+DC	Transitional DC
+DC	DC precursor
+Double-negative thymocytes	Double-negative thymocytes
+Double-positive thymocytes	Double-positive thymocytes
+Early MK	Early MK
+Endothelial cells	Endothelial cells
+Epithelial cells	Epithelial cells
+Erythrocytes	Erythrocytes
+Erythroid	Early erythroid
+Erythroid	Late erythroid
+Erythroid	Mid erythroid
+ETP	ETP
+Fibroblasts	Fibroblasts
+Granulocytes	Granulocytes
+Granulocytes	Neutrophils
+HSC/MPP	CMP
+HSC/MPP	Early lymphoid/T lymphoid
+HSC/MPP	ELP
+HSC/MPP	GMP
+HSC/MPP	HSC/MPP
+HSC/MPP	Megakaryocyte-erythroid-mast cell progenitor
+HSC/MPP	MEMP
+HSC/MPP	Neutrophil-myeloid progenitor
+ILC	ILC
+ILC	ILC1
+ILC	ILC2
+ILC	ILC3
+NK cells	CD16+ NK cells
+NK cells	CD16- NK cells
+NK cells	NK cells
+NK cells	Transitional NK
+ILC precursor	ILC precursor
+Macrophages	Hofbauer cells
+Macrophages	Kidney-resident macrophages
+Macrophages	Kupffer cells
+Macrophages	Macrophages
+Mast cells	Mast cells
+Megakaryocyte precursor	Megakaryocyte precursor
+Megakaryocytes/platelets	Megakaryocytes/platelets
+MNP	MNP
+Mono-mac	Mono-mac
+Monocytes	Monocyte precursor
+Monocytes	Classical monocytes
+Monocytes	Non-classical monocytes
+Monocytes	Monocytes
+Myelocytes	Myelocytes
+pDC	pDC
+pDC	pDC precursor
+Plasma cells	Plasma cells
+Promyelocytes	Promyelocytes
+T cells	CD8a/a
+T cells	CD8a/b(entry)
+T cells	Follicular helper T cells
+T cells	gamma-delta T cells
+T cells	MAIT cells
+T cells	Memory CD4+ cytotoxic T cells
+T cells	NKT cells
+T cells	Regulatory T cells
+T cells	T(agonist)
+T cells	Tcm/Naive cytotoxic T cells
+T cells	Tcm/Naive helper T cells
+T cells	Tem/Trm cytotoxic T cells
+T cells	Tem/Temra cytotoxic T cells
+T cells	Trm cytotoxic T cells
+T cells	Tem/Effector helper T cells
+T cells	Tem/Effector helper T cells PD1+
+T cells	Treg(diff)
+T cells	Type 1 helper T cells
+T cells	Type 17 helper T cells

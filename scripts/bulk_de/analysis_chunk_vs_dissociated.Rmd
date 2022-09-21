@@ -1,0 +1,162 @@
+---
+title: "GSEA Chunk vs dissociated"
+author: "Ariel Hippen"
+date: '2022-07-28'
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analyzing differential expression results
+
+We have calculated differential expression genes in DE_chunk_vs_dissociated.Rmd, now we will try to make sense of them. Our main workhorse will be Gene Set Enrichment Analysis (GSEA) across several reference sets.
+
+```{r libraries}
+suppressPackageStartupMessages({
+  library(DESeq2)
+  library(WebGestaltR)
+  library(ggplot2)
+})
+```
+
+```{r}
+# Load the DESeq2 object with the original count matrix
+deseq_path <- paste(local_data_path, "deseq2_results", sep = "/")
+dds <- readRDS(paste(deseq_path, "chunk_vs_dissociated_data.rds", sep = "/"))
+
+# Load the DESeqResults object with differentially expressed genes, at FDR 0.1 and 0.05
+res1 <- readRDS(paste(deseq_path, "chunk_vs_dissociated_FDR_0.1.rds", sep = "/"))
+res05 <- readRDS(paste(deseq_path, "chunk_vs_dissociated_FDR_0.05.rds", sep = "/"))
+```
+
+## Top genes
+
+Let's look at the top 20 most upregulated and downregulated genes and see if we can find a pattern.
+
+```{r}
+res1 <- subset(res1, res1$padj < 0.1)
+res1 <- res1[order(res1$log2FoldChange), ]
+as.data.frame(head(res1, n=20))
+```
+So these are more upregulated in the chunks than in the dissociated cells. HBB, HBA1, and HBA2 are all hemoglobin genes. CXCR1 is a chemokine receptor. Several of these genes are secreted by fat cells/adipocytes (ADIPOQ, LEP, PLIN1, CIDEC). There's a gene (TEX48) that's very lowly expressed but is apparently only expressed in testes????? Is that cancer being funky or a sign of contamination? And then FCCGR3B is a component of IgG.
+
+```{r}
+as.data.frame(tail(res1, n=20))
+```
+These are more upregulated in the dissociated cells. The top ones are a mess. AGXT is supposedly only expressed in the liver, OVOL1-AS1 is a lncRNA.
+EREG is "a member of the epidermal growth factor (EGF) family of proteins. The encoded protein may be involved in a wide range of biological processes including inflammation, wound healing, oocyte maturation, and cell proliferation." https://www.genecards.org/cgi-bin/carddisp.pl?gene=EREG
+CSF3 "is produced by endothelium, macrophages, and a number of other immune cells." https://en.wikipedia.org/wiki/Granulocyte_colony-stimulating_factor
+HSPB3 "This gene encodes a muscle-specific small heat shock protein." https://www.ncbi.nlm.nih.gov/gene/8988
+SELE "The protein encoded by this gene is found in cytokine-stimulated endothelial cells" https://www.genecards.org/cgi-bin/carddisp.pl?gene=SELE
+
+Let's try again but with a filter to only genes that are decently expressed.
+
+```{r}
+res1high <- subset(res1, res1$baseMean > 100)
+as.data.frame(head(res1high, n=20))
+```
+
+Okay, a couple more adipose tissue things (THRSP, DGAT2).
+
+```{r}
+as.data.frame(tail(res1high, n=20))
+```
+
+Oh boy, another testis-expressed gene (TEX14). Oooh upregulated keratin (KRT16, KRT17). And we've got a brain-specific protease (PRSS22).
+PEAK3 is "Involved in regulation of actin cytoskeleton organization." https://www.genecards.org/cgi-bin/carddisp.pl?gene=PEAK3
+NLRP3 is "NLRP3 is expressed predominantly in macrophages and as a component of the inflammasome." https://en.wikipedia.org/wiki/NLRP3
+ARC is "Activity-regulated cytoskeleton-associated protein" and apparently really important for learning? https://en.wikipedia.org/wiki/Activity-regulated_cytoskeleton-associated_protein
+A couple more chemokines (CCL3L1, CXCL8)
+Something involved in apoptosis (PMAIP1), https://www.genecards.org/cgi-bin/carddisp.pl?gene=PMAIP1
+
+
+## GSEA
+
+WebGestaltR expects a data frame with two columns, gene name and fold change.
+
+```{r}
+res1$gene <- rownames(res1); rownames(res1) <- NULL
+res1 <- subset(res1, select=c("gene","log2FoldChange"))
+res1 <- as.data.frame(res1)
+nrow(res1)
+
+res05 <- subset(res05, res05$padj < 0.05)
+res05$gene <- rownames(res05); rownames(res05) <- NULL
+res05 <- subset(res05, select=c("gene","log2FoldChange"))
+res05 <- as.data.frame(res05)
+nrow(res05)
+```
+### GO Biological process
+
+Our first try at GSEA will use the same reference set we used for overrepresentation analysis in the single-cell data, GO Biological process.
+
+```{r}
+GO_bp <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                             enrichDatabase = "geneontology_Biological_Process_noRedundant",
+                             interestGene = res1,
+                             interestGeneType = "genesymbol",
+                             isOutput = FALSE))
+
+nrow(GO_bp)
+
+```
+
+```{r}
+GO_bp_05 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                             enrichDatabase = "geneontology_Biological_Process_noRedundant",
+                             interestGene = res05,
+                             interestGeneType = "genesymbol",
+                             isOutput = FALSE))
+
+nrow(GO_bp_05)
+GO_bp_05 <- GO_bp_05[order(GO_bp_05$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(GO_bp_05, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+tail(subset(GO_bp_05, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+
+### Cell types
+
+Let's try a custom set for cell types, as curated by the folks at http://www.gsea-msigdb.org/
+
+```{r}
+C8 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                       enrichDatabaseFile = "GSEA_custom_sets/c8.all.v7.5.1.symbols.gmt",
+                       enrichDatabaseType = "genesymbol",
+                       interestGene = res1,
+                       interestGeneType = "genesymbol",
+                       isOutput = FALSE))
+
+nrow(C8)
+C8 <- C8[order(C8$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(C8, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+tail(subset(C8, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+
+```{r}
+C8_05 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                       enrichDatabaseFile = "GSEA_custom_sets/c8.all.v7.5.1.symbols.gmt",
+                       enrichDatabaseType = "genesymbol",
+                       interestGene = res05,
+                       interestGeneType = "genesymbol",
+                       isOutput = FALSE))
+
+nrow(C8_05)
+C8_05 <- C8_05[order(C8_05$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(C8_05, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+tail(subset(C8_05, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+
+## Conclusions
+
+The main things being lost in dissociation are red blood cells and adipose tissue. The latter makes sense, because it's documented that it's very hard to get adipose tissue to dissociate cleanly, and as such it's much more prevalent in single-nucleus RNA-seq than single cell. Still need to figure out the reason for the loss of red blood cells in dissociation.
+
+The dissociated samples seem to have an enrichment of fibroblasts, endothelial cells, and immune cells. I imagine this means they're being sequenced to a higher depth since they're not competing with adipose tissue.
+
+Still not totally sure what this means for the cancer cells. Probably more analysis is needed there.

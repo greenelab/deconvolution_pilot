@@ -1,0 +1,252 @@
+---
+title: "DE_polyA_vs_pseudo"
+author: "Ariel Hippen"
+date: '2022-07-31'
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# DESeq2 pipeline
+
+As a control for our DE analysis, we will run differential expression on our real bulk results and pseudo-bulk data (single-cell data pooled together to approximate a bulk RNA-seq sample.) Here we'll compare to our dissociated, poly-A captured bulk data. Since that's the same library prep process, we'd hope that there's not a ton of significant changes here, but let's be honest we're probably not that lucky.
+
+
+
+```{r packages}
+suppressPackageStartupMessages({
+  library(data.table)
+  library(DESeq2)
+  library(vsn)
+  library(pheatmap)
+  library(RColorBrewer)
+  library(PCAtools)
+  library(testit)
+})
+
+source("../../config.R")
+```
+
+## Load data
+
+```{r}
+# Get paths to STAR.counts files for bulk poly-A samples
+# Note: variable data_path is loaded from config.R
+directory <- paste(data_path, "bulk_tumors", sep = "/")
+sampleFiles <- list.files(directory, recursive = TRUE, full.names = TRUE)
+sampleFiles <- grep("ReadsPerGene.out.tab", sampleFiles, value=TRUE)
+sampleFiles <- grep("polyA",sampleFiles, value=TRUE)
+```
+
+DESeq expects a metadata table to pass into the colData part of a SummarizedExperiment object. We'll prep it here.
+
+```{r}
+# Note: variable samples is loaded from config.R
+sampleNames <- c(gsub(".*/(\\d+)/.*", "\\1", sampleFiles), samples)
+sampleCondition <- rep(c("bulk","pseudo"), each=8)
+samplePool <- ifelse(sampleNames %in% c("2251","2428","2467","2497"),
+                     "01132022","12162021")
+sampleUnique <- paste(sampleNames,sampleCondition,sep="_")
+colData <- data.frame(id = sampleUnique,
+                      sample = sampleNames,
+                      pool = samplePool,
+                      condition = sampleCondition)
+colData$condition <- factor(colData$condition)
+```
+
+Now we can load in the bulk files and create a counts matrix. Note that this shouldn't be stranded data, so we'll use column 2 of the STAR counts files.
+
+```{r}
+counts <- matrix(nrow=36601, ncol = 8)
+for (i in 1:8){
+  newcounts <- fread(sampleFiles[i])
+  newcounts <- newcounts[-c(1:4),]
+  counts[, i] <- newcounts$V2
+  if (i == 1) {
+	rownames(counts) <- newcounts$V1
+  } else{
+	  assert(rownames(counts) == newcounts$V1)
+  }
+}
+rm(newcounts); gc()
+```
+
+And now we'll add in the pseudobulk data from generate_pseudobulk.R.
+
+```{r}
+sce_path <- paste(local_data_path, "sce_objects", sep = "/")
+pseudo <- readRDS(paste(sce_path, "full_pseudobulk.rds", sep = "/"))
+counts <- cbind(counts, pseudo)
+colnames(counts) <- colData$id
+rm(pseudo); gc()
+```
+
+This counts matrix has the genes listed by their Ensembl IDs, which is helpful for uniqueness but bad for readability in the downstream analysis. The easiest way I've found to convert ensembl IDs to gene names for this dataset is by loading in a SingleCellExperiment object from the same experiment, where this mapping is automatically stored.
+
+```{r}
+sce <- readRDS(paste(sce_path, "pooled_clustered_50.rds", sep = "/"))
+gene_map <- as.data.frame(subset(rowData(sce), select=c("ID","Symbol")))
+gene_map <- gene_map[rownames(counts)==gene_map$ID,]
+rownames(counts) <- gene_map$Symbol
+rm(sce); gc()
+```
+
+```{r}
+# Create DESeq object 
+dds <- DESeqDataSetFromMatrix(countData = counts,
+                              colData = colData,
+                              #design = ~condition)
+                              design = ~ sample + condition)
+dds
+```
+
+The tutorial recommends doing some basic pre-filtering of non- or low-expressed genes to speed up computation, estimate the library depth correction factor, and to clean up later visualizations. 
+
+```{r}
+colnames(counts) <- colData$id
+melted_counts <- melt(counts)
+melted_counts$logcounts <- log10(melted_counts$value+1)
+
+ggplot(melted_counts, aes(x=Var2, y=logcounts)) + geom_boxplot()
+```
+
+Okay, in some of the samples at least 25% of the genes are not expressed. Let's go a little more conservative and remove any genes that have fewer than 20 reads total.
+
+```{r}
+keep <- rowSums(counts(dds)) >= 20
+dds <- dds[keep, ]
+```
+
+## Differential expression
+
+If you don't set the condition factor specifically, it can be hard to tell if A is upregulated compared to B or vice versa. We'll set "chunk_ribo" as the reference and look at how dissociated_ribo is upregulated or downregulated compared to that.
+
+```{r}
+dds$condition <- relevel(dds$condition, ref = "bulk")
+```
+
+```{r}
+# Run differential expression
+dds <- DESeq(dds)
+res <- results(dds)
+res
+```
+
+The tutorial says "shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes. To shrink the LFC, we pass the dds object to the function lfcShrink. We provide the dds object and the name or number of the coefficient we want to shrink."
+
+```{r}
+resLFC <- lfcShrink(dds, coef="condition_pseudo_vs_bulk", type="apeglm")
+resLFC
+```
+
+A quick summary of our differential expression results, at both a 0.1 and 0.05 FDR.
+
+```{r}
+summary(res)
+
+sum(res$padj  < 0.1, na.rm = TRUE)
+```
+
+```{r}
+res05 <- results(dds, alpha=0.05)
+summary(res05)
+
+sum(res05$padj < 0.05, na.rm = TRUE)
+```
+
+So it seems like there are more genes downregulated than up (meaning there are more genes more highly expressed in true bulk than in pseudobulk). This is what we'd expect, given the technical dropouts of scRNA-seq, but it's worth noting there's still a *lot* of genes upregulated, aka more expressed in pseudobulk than in true bulk.
+
+### Plotting results
+
+From tutorial: "In DESeq2, the function plotMA shows the log2 fold changes attributable to a given variable over the mean of normalized counts for all the samples in the DESeqDataSet. Points will be colored blue if the adjusted p value is less than 0.1. Points which fall out of the window are plotted as open triangles pointing either up or down."
+
+```{r}
+plotMA(res, ylim=c(-2,2))
+plotMA(resLFC, ylim=c(-2,2))
+```
+
+### Transformations
+
+The DESeq2 authors recommend the rlog method to adjust for heteroskedasticity in experiments with n < 30. We'll check it and the other vst method they recommend for n > 30.
+
+```{r}
+vsd <- vst(dds, blind=FALSE)
+rld <- rlog(dds, blind=FALSE)
+```
+
+The meanSdPlot plots the mean (as ranked values) by standard deviation, if there is heteroskedasticity there should be a flat line across the values, but they say we shouldn't expect it to be perfectly straight.
+
+```{r}
+ntd <- normTransform(dds)
+meanSdPlot(assay(ntd))
+meanSdPlot(assay(vsd))
+meanSdPlot(assay(rld))
+```
+
+Okay, none of these are *too* heteroskedastic, but the normal and rlog look slightly better than vsd. I'll use rlog for the sample comparisons.
+
+## Sample comparisons
+
+```{r}
+sampleDists <- dist(t(assay(rld)))
+
+sampleDistMatrix <- as.matrix(sampleDists)
+rownames(sampleDistMatrix) <- paste(rld$condition, rld$sample, sep="-")
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+         clustering_distance_rows=sampleDists,
+         clustering_distance_cols=sampleDists,
+         col=colors)
+
+x<-cor(counts)
+pheatmap(x)
+```
+
+The separation is clearly sequencing type-specific.
+
+```{r}
+pcaData <- plotPCA(rld, intgroup=c("condition", "sample"), returnData=TRUE)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+ggplot(pcaData, aes(PC1, PC2, color=sample, shape=condition)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",percentVar[1],"% variance")) +
+  ylab(paste0("PC2: ",percentVar[2],"% variance")) + 
+  coord_fixed()
+```
+
+Okay, it's clear that PC1 is sequencing type.
+
+For thoroughness, I'm going to check and see if sequencing is represented in PCs 3-5. I'm going to use the PCAtools tutorial (https://bioconductor.org/packages/release/bioc/vignettes/PCAtools/inst/doc/PCAtools.html) for this.
+
+```{r}
+p <- pca(assay(rld), metadata = colData(rld), removeVar = 0.1)
+screeplot(p, axisLabSize = 18, titleLabSize = 22)
+```
+
+```{r, fig.dim=c(12,12)}
+pairsplot(p, colby = "sample", pointSize=2)
+```
+
+Okay, PCs 2-5 seem to be roughly based on sample, but the overwhelming distinction is sequencing type.
+
+## Conclusions
+
+The sequencing type seems to have such a big effect that I'm not sure we can really use pseudobulk as a control for differential expression. This is disappointing, but it may actually be a useful result to remind about the perils of using single-cell data for deconvolution. It's also a little surprising that there is significant differential expression in both directions, so this isn't just a factor of technical dropouts.
+
+```{r}
+# Save data
+deseq_path <- paste(local_data_path, "deseq2_output", sep = "/")
+saveRDS(dds, file = paste(deseq_path, "polyA_vs_pseudo_data.rds", sep = "/"))
+
+# Save results files
+saveRDS(res, file = paste(deseq_path, "polyA_vs_pseudo_FDR_0.1.rds", sep = "/"))
+saveRDS(res05, file = paste(deseq_path, "polyA_vs_pseudo_FDR_0.05.rds", sep = "/"))
+```
