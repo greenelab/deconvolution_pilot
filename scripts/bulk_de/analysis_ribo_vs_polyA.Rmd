@@ -1,0 +1,167 @@
+---
+title: "GSEA Ribo vs polyA"
+author: "Ariel Hippen"
+date: '2022-07-28'
+output: 
+  html_document:
+    toc: true
+    toc_depth: 4
+    toc_float:
+      collapsed: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Analyzing differential expression results
+
+We have calculated differential expression genes in DE_ribo_vs_polyA.Rmd, now we will try to make sense of them. Our main workhorse will be Gene Set Enrichment Analysis (GSEA) across several reference sets.
+
+```{r libraries}
+suppressPackageStartupMessages({
+  library(DESeq2)
+  library(WebGestaltR)
+  library(ggplot2)
+})
+```
+
+```{r}
+# Load the DESeq2 object with the original count matrix
+deseq_path <- paste(local_data_path, "deseq2_results", sep = "/")
+dds <- readRDS(paste(deseq_path, "ribo_vs_polyA_data.rds", sep = "/"))
+
+# Load the DESeqResults object with differentially expressed genes, at FDR 0.1 and 0.05
+res1 <- readRDS(paste(deseq_path, "ribo_vs_polyA_FDR_0.1.rds", sep = "/"))
+res05 <- readRDS(paste(deseq_path, "ribo_vs_polyA_FDR_0.05.rds", sep = "/"))
+```
+
+## Top genes
+
+Let's look at the top 20 most upregulated and downregulated genes and see if we can find a pattern.
+
+```{r}
+res1 <- subset(res1, res1$padj < 0.1)
+res1 <- res1[order(res1$log2FoldChange), ]
+as.data.frame(head(res1, n=20))
+```
+
+Reminder, these ^ are the ones that are much more expressed in rRNA depletion than poly-A selection. There's a lot of genes to make histone proteins here! The top gene, RMRP, is the RNA component of a endoribonuclease that cleaves mitochondrial RNA. TERC is the RNA component of telomerase. The others are a bunch of lncRNAs that seem pretty unstudied.
+
+```{r}
+as.data.frame(tail(res1, n=20))
+```
+
+These ^ are the genes that are much more expressed in poly-A selection. The obvious jump-out is the mitochondrial genes. Other things to note are MUC3A, which encodes an epithelial glycoprotein, and a bunch of lncRNAs.
+
+## GSEA
+
+WebGestaltR expects a data frame with two columns, gene name and fold change.
+
+```{r}
+res1$gene <- rownames(res1); rownames(res1) <- NULL
+res1 <- subset(res1, select=c("gene","log2FoldChange"))
+res1 <- as.data.frame(res1)
+nrow(res1)
+
+res05 <- subset(res05, res05$padj < 0.05)
+res05$gene <- rownames(res05); rownames(res05) <- NULL
+res05 <- subset(res05, select=c("gene","log2FoldChange"))
+res05 <- as.data.frame(res05)
+nrow(res05)
+```
+### GO Biological process
+
+Our first try at GSEA will use the same reference set we used for overrepresentation analysis in the single-cell data, GO Biological process.
+
+```{r}
+GO_bp <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                          enrichDatabase = "geneontology_Biological_Process_noRedundant",
+                          interestGene = res1,
+                          interestGeneType = "genesymbol",
+                          isOutput = FALSE))
+
+nrow(GO_bp)
+GO_bp <- GO_bp[order(GO_bp$normalizedEnrichmentScore, decreasing = TRUE),]
+subset(GO_bp, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size"))
+```
+
+```{r}
+GO_bp_05 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                             enrichDatabase = "geneontology_Biological_Process_noRedundant",
+                             interestGene = res05,
+                             interestGeneType = "genesymbol",
+                             isOutput = FALSE))
+
+nrow(GO_bp_05)
+GO_bp_05 <- GO_bp_05[order(GO_bp_05$normalizedEnrichmentScore, decreasing = TRUE),]
+subset(GO_bp_05, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size"))
+```
+
+### GO Cellular Component
+
+Ooh for this one, looking at cell components might actually be useful.
+```{r}
+GO_cc <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                             enrichDatabase = "geneontology_Cellular_Component_noRedundant",
+                             interestGene = res05,
+                             interestGeneType = "genesymbol",
+                             isOutput = FALSE))
+
+nrow(GO_cc)
+GO_cc <- GO_cc[order(GO_cc$normalizedEnrichmentScore, decreasing = TRUE),]
+subset(GO_cc, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size"))
+```
+
+```{r}
+GO_cc_05 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                             enrichDatabase = "geneontology_Cellular_Component_noRedundant",
+                             interestGene = res05,
+                             interestGeneType = "genesymbol",
+                             isOutput = FALSE))
+
+nrow(GO_cc_05)
+GO_cc_05 <- GO_cc_05[order(GO_cc_05$normalizedEnrichmentScore, decreasing = TRUE),]
+subset(GO_cc_05, select=c("geneSet","description","normalizedEnrichmentScore","pValue","FDR","size"))
+```
+
+So there's more ribosomal-associated transcripts in the poly-A selected cells (that seems correct and encouraging?), whereas the rRNA depleted cells have transcripts with more to do with DNA packaging (i.e. histones).
+
+### Cell types
+
+Let's try a custom set for cell types, as curated by the folks at http://www.gsea-msigdb.org/
+
+```{r}
+C8 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                       enrichDatabaseFile = "GSEA_custom_sets/c8.all.v7.5.1.symbols.gmt",
+                       enrichDatabaseType = "genesymbol",
+                       interestGene = res1,
+                       interestGeneType = "genesymbol",
+                       isOutput = FALSE))
+
+nrow(C8)
+C8 <- C8[order(C8$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(C8, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+Note that this one only has cell type pathways upregulated in the polyA, no cell types that are more upregulated in the ribo-depleted.
+
+```{r}
+C8_05 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+                       enrichDatabaseFile = "GSEA_custom_sets/c8.all.v7.5.1.symbols.gmt",
+                       enrichDatabaseType = "genesymbol",
+                       interestGene = res05,
+                       interestGeneType = "genesymbol",
+                       isOutput = FALSE))
+
+nrow(C8_05)
+C8_05 <- C8_05[order(C8_05$normalizedEnrichmentScore, decreasing = TRUE),]
+head(subset(C8_05, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")))
+```
+Same here, a lot of smooth muscle cells and fibroblast-looking things. Not sure how confident I am in this gene set though.
+
+
+## Conclusions
+
+The genes that are most upregulated in the rRNA depletion are the genes encoding histones and "RNAs with jobs", like telomerase RNA and endoribonucleases. I'm not totally sure why, my quick literature review seems to indicate they should still be polyadenylated, but perhaps not.
+
+The genes that are most upregulated in the poly-A capture are mitochondrial genes (still need to look into why that is), and ribosomal-associated genes (not surprising).
