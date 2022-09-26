@@ -44,20 +44,3 @@ colnames(full_pseudobulk) <- samples
 rm(i, sce, counts, sums); gc()
 
 saveRDS(full_pseudobulk, file = paste(pseudobulk_path, "full_pseudobulk.rds", sep = "/"))
-
-
-# Make matrix of pseudobulk but filtered according to Seurat parameters
-seurat_pseudobulk <- matrix(nrow = 36601, ncol = length(samples))
-for(i in 1:length(samples)){
-  sample_id <- samples[i]
-  sce <- read10xCounts(paste(data_path, "tumors", sample_id, "Cellranger/outs/filtered_feature_bc_matrix", sep="/"))
-  rownames(sce) <- rowData(sce)$Symbol
-  mt_genes <- grep("^MT-", rownames(sce),value=T)
-  feature_ctrls <- list(mito=mt_genes)
-  sce <- addPerCellQC(sce, subsets=feature_ctrls)
-  ncol(sce)
-  sce <- sce[, sce$subsets_mito_percent<=5]
-  sce <- sce[, sce$detected >= 200 & sce$detected <= 2500]
-  ncol(sce)
-  sce <- logNormCounts(sce)
-}
