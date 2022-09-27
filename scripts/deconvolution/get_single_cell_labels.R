@@ -1,7 +1,10 @@
 # Most deconvolution methods that employ single-cell data require a reference
 # profile with each cell labeled by cell type. This script generates that,
 # using the intersection of cellTypist and unsupervised clustering results
-# to determine cell labels.
+# to determine cell labels. Note: this is using data from the pooled and
+# demultiplexed runs, meaing that we can use the individually sequenced single
+# cell runs to generate pseudobulk files to evaluate without testing on our
+# training data.
 
 suppressPackageStartupMessages({
   library(data.table)
