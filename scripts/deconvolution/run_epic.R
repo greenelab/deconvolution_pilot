@@ -8,7 +8,6 @@ suppressPackageStartupMessages({
 })
 
 bulk_type <- snakemake@wildcards[['bulk_type']]
-# bulk_type <- "chunk_ribo"
 source("../../config.R")
 
 # Load transcript-to-gene mapping for TPM data
