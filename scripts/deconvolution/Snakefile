@@ -12,7 +12,7 @@
 # Threads: number of cores to run on.
 
 BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA'] #TODO: add pseudobulk
-METHODS = [ 'music', 'bisque', 'cdseq', 'bayesprism', 'epic'] # etc.
+METHODS = [ 'music', 'bisque', 'cdseq', 'bayesprism', 'epic', 'quantiseq', 'xcell', 'consensus_tme'] # etc.
 # GRANULARITY = ['low', 'high'] for number of cell types #TODO: decide whether to include
 SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
 THREADS = 6
@@ -44,6 +44,7 @@ rule run_bisque:
 		dir_inputs + "labeled_single_cell_profile.rds"
 	output:
 		dir_results + "{bulk_type}/bisque_results.tsv"
+	priority: 4000
 	script:
 		"run_bisque.R"
 
@@ -71,6 +72,39 @@ rule run_epic:
 		dir_results + "{bulk_type}/epic_results.tsv"
 	script:
 		"run_epic.R"
+
+rule run_quantiseq:
+	input:
+		salmon = lambda wildcards: \
+		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
+		  for sampleid in SAMPLES
+		  ]
+	output:
+		dir_results + "{bulk_type}/quantiseq_results.tsv"
+	script:
+		"run_quantiseq.R"
+
+rule run_xcell:
+	input:	
+		salmon = lambda wildcards: \
+		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
+		  for sampleid in SAMPLES
+		  ]
+	output:
+		dir_results + "{bulk_type}/xcell_results.tsv"
+	script:
+		"run_xcell.R"
+
+rule run_consensus_tme:
+	input:
+		salmon = lambda wildcards: \
+		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
+		  for sampleid in SAMPLES
+		  ]
+	output:
+		dir_results + "{bulk_type}/consensus_tme_results.tsv"
+	script:
+		"run_consensus_tme.R"
 
 # --------------
 # Helper scripts 
@@ -107,7 +141,6 @@ rule run_salmon:
 	params:
 		index = "../../../sc-cancer-hgsc/data/index/salmon_index",
 		outdir = dir_bulk + "/{sample}/{bulk_type}/salmon"
-	priority: 4000
 	shell:
 		"salmon quant -i {params.index} -l A -1 {input.r1} -2 {input.r2} -o {params.outdir} -p {THREADS}"
 
@@ -119,6 +152,5 @@ rule get_salmon_index:
 		index = dir_index + "/salmon_index",
 		genome = dir_index + "/gencode.v32.transcripts.fa.gz",
                 genes = dir_index + "/refdata-gex-GRCh38-2020-A/genes/genes.gtf"
-	priority: 5000	
 	shell:
 		"salmon index -i {params.index} -t {params.genome} -k 23 -p {THREADS} --gencode"	
