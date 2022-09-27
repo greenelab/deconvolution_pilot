@@ -1,0 +1,124 @@
+# This snakefile runs deconvolution for each of the various packages we've implemented. 
+
+# ---------
+# Variables
+# ---------
+
+# Bulk types: bulk samples to deconvolve. We ran bulk RNA-seq on the samples in three separate ways: rRNA depletion
+# on tumor chunks, dissociation and then rRNA depletion, and dissociation and then polyA (3') capture. We will also
+# add in pseudobulk when we have decided on the proper way to implement it.
+# Methods: the deconvolution packages we have implemented. Citation is in the corresponding R script.
+# Samples: the eight samples used in the pilot. This info is needed to run salmon.
+# Threads: number of cores to run on.
+
+BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA'] #TODO: add pseudobulk
+METHODS = [ 'music', 'bisque', 'cdseq', 'bayesprism', 'epic'] # etc.
+# GRANULARITY = ['low', 'high'] for number of cell types #TODO: decide whether to include
+SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
+THREADS = 6
+
+dir_results = "../../data/deconvolution_output/"
+dir_inputs = "../../data/deconvolution_input/"
+dir_bulk = "../../../sc-cancer-hgsc/data/bulk_tumors"
+dir_index = "../../../sc-cancer-hgsc/data/index"
+
+
+# --------
+# Workflow
+# --------
+
+rule all:
+	input:
+		expand(dir_results + "{bulk_type}/{method}_results.tsv", bulk_type=BULK_TYPES, method=METHODS)
+
+rule run_music:
+	input:
+		dir_inputs + "labeled_single_cell_profile.rds"
+	output:
+		dir_results + "{bulk_type}/music_results.tsv"
+	script:
+		"run_music.R"
+
+rule run_bisque:
+	input:
+		dir_inputs + "labeled_single_cell_profile.rds"
+	output:
+		dir_results + "{bulk_type}/bisque_results.tsv"
+	script:
+		"run_bisque.R"
+
+rule run_cdseq:
+	output:
+		dir_results + "{bulk_type}/cdseq_results.tsv"
+	script:
+		"run_cdseq.R"
+
+rule run_bayesprism:
+	input:
+		dir_inputs + "labeled_cell_state_profile.rds"
+	output:
+		dir_results + "{bulk_type}/bayesprism_results.tsv"
+	script:
+		"run_bayesprism.R"
+
+rule run_epic:
+	input:
+		salmon = lambda wildcards: \
+		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
+		  for sampleid in SAMPLES
+		  ]
+	output:
+		dir_results + "{bulk_type}/epic_results.tsv"
+	script:
+		"run_epic.R"
+
+# --------------
+# Helper scripts 
+# --------------
+
+# These scripts produce input files needed to run one or more deconvolution methods.
+
+# Generates a reference profile object for methods using single cell.
+rule get_single_cell_labels:
+	input:
+	output:
+		dir_inputs + "labeled_single_cell_profile.rds"
+	script:
+		"get_single_cell_labels.R"
+
+# BayesPrism requires two levels of information, cell type and cell state. This
+# script refactors the existing cellTypist data to fit the needed parameters.
+rule get_cell_states:
+	input:
+	output:
+		dir_inputs + "labeled_cell_state_profile.rds"
+	script:
+		"get_cell_states.R"
+
+# Some deconvolution methods require TPM values instead of raw count values. The
+# preferred way to get TPM values is by quantifying the transcriptome via salmon.
+rule run_salmon:
+	input:
+		r1 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R1_merged.fastq.gz",
+		r2 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R2_merged.fastq.gz",
+		bin = "../../../sc-cancer-hgsc/data/index/salmon_index/refseq.bin"
+	output:
+		dir_bulk + "/{sample}/{bulk_type}/salmon/quant.sf"
+	params:
+		index = "../../../sc-cancer-hgsc/data/index/salmon_index",
+		outdir = dir_bulk + "/{sample}/{bulk_type}/salmon"
+	priority: 4000
+	shell:
+		"salmon quant -i {params.index} -l A -1 {input.r1} -2 {input.r2} -o {params.outdir} -p {THREADS}"
+
+# Salmon requires a previously generated index.
+rule get_salmon_index:
+	output:
+		"../../../sc-cancer-hgsc/data/index/salmon_index/refseq.bin"
+	params:
+		index = dir_index + "/salmon_index",
+		genome = dir_index + "/gencode.v32.transcripts.fa.gz",
+                genes = dir_index + "/refdata-gex-GRCh38-2020-A/genes/genes.gtf"
+	priority: 5000	
+	shell:
+		"salmon index -i {params.index} -t {params.genome} -k 23 -p {THREADS} --gencode"	
