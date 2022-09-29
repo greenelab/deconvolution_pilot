@@ -12,7 +12,7 @@
 # Threads: number of cores to run on.
 
 BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA'] #TODO: add pseudobulk
-METHODS = [ 'music', 'bisque', 'cdseq', 'bayesprism', 'epic', 'quantiseq', 'xcell', 'consensus_tme'] # etc.
+METHODS = [ 'music', 'bisque', 'cdseq', 'bayesprism', 'epic', 'quantiseq', 'mcpcounter', 'xcell', 'consensus_tme', 'abis', 'timer'] # etc.
 # GRANULARITY = ['low', 'high'] for number of cell types #TODO: decide whether to include
 SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
 THREADS = 6
@@ -44,7 +44,6 @@ rule run_bisque:
 		dir_inputs + "labeled_single_cell_profile.rds"
 	output:
 		dir_results + "{bulk_type}/bisque_results.tsv"
-	priority: 4000
 	script:
 		"run_bisque.R"
 
@@ -72,6 +71,17 @@ rule run_epic:
 		dir_results + "{bulk_type}/epic_results.tsv"
 	script:
 		"run_epic.R"
+
+rule run_mcpcounter:
+	input:
+		salmon = lambda wildcards: \
+		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
+		  for sampleid in SAMPLES
+		  ]
+	output:
+		dir_results + "{bulk_type}/mcpcounter_results.tsv"
+	script:
+		"run_mcpcounter.R"
 
 rule run_quantiseq:
 	input:
@@ -105,6 +115,28 @@ rule run_consensus_tme:
 		dir_results + "{bulk_type}/consensus_tme_results.tsv"
 	script:
 		"run_consensus_tme.R"
+
+rule run_abis:
+	input:
+		salmon = lambda wildcards: \
+		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
+		  for sampleid in SAMPLES
+		  ]
+	output:
+		dir_results + "{bulk_type}/abis_results.tsv"
+	script:
+		"run_abis.R"
+
+rule run_timer:
+	input:
+		salmon = lambda wildcards: \
+		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
+		  for sampleid in SAMPLES
+		  ]
+	output:
+		dir_results + "{bulk_type}/timer_results.tsv"
+	script:
+		"run_timer.R"
 
 # --------------
 # Helper scripts 
