@@ -48,7 +48,8 @@ indications <- rep("ov", length(samples))
 
 # Run consensus_tme
 res <- deconvolute_consensus_tme(bulk_matrix, indications)
-
+res <- cbind(rownames(res), res)
+colnames(res) <- c("cell_type", samples)
 
 # Save results to text file
 text_file <- paste(local_data_path, "deconvolution_output",

@@ -51,7 +51,12 @@ object_file <- paste(local_data_path, "deconvolution_output",
                      bulk_type, "epic_results_full.rds", sep = "/")
 saveRDS(out, file = object_file)
 
-# Save text version of proportion estimates
+# Reformat text version of proportion estimates
+tmp <- as.data.frame(t(out$cellFractions))
+tmp <- cbind(rownames(tmp), tmp)
+colnames(tmp) <- c("cell_type", samples)
+
+# Save proportion estimates
 text_file <- paste(local_data_path, "deconvolution_output",
                    bulk_type, "epic_results.tsv", sep = "/")
-write.table(out$cellFractions, file = text_file, sep = "\t")
+write.table(tmp, file = text_file, sep = "\t", row.names = F, quote = F)

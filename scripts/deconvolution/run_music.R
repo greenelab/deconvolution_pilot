@@ -51,11 +51,20 @@ object_file <- paste(local_data_path, "deconvolution_output",
                      bulk_type, "music_results_full.rds", sep = "/")
 saveRDS(mus, file = object_file)
 
+# Format text versions of proportion estimates
+nnls <- t(mus$Est.prop.allgene)
+nnls <- cbind(rownames(nnls), nnls)
+colnames(nnls) <- c("cell_type", samples)
+
+music <- t(mus$Est.prop.weighted)
+music <- cbind(rownames(music), music)
+colnames(music) <- c("cell_type", samples)
+
 # Save text versions of proportion estimates
 text_file <- paste(local_data_path, "deconvolution_output",
                    bulk_type, "music_results.tsv", sep = "/")
-write.table(mus$Est.prop.weighted, file = text_file, sep = "\t")
+write.table(music, file = text_file, sep = "\t", row.names = F, quote = F)
 
 text_file <- paste(local_data_path, "deconvolution_output",
                    bulk_type, "nnls_results.tsv", sep = "/")
-write.table(mus$Est.prop.allgene, file = text_file, sep = "\t")
+write.table(nnls, file = text_file, sep = "\t", row.names = F, quote = F)

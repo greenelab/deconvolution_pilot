@@ -49,7 +49,11 @@ object_file <- paste(local_data_path, "deconvolution_output",
                      bulk_type, "bisque_results_full.rds", sep = "/")
 saveRDS(res, file = object_file)
 
-# Save text version of proportion estimates
+# Format text version of proportion estimates
+tmp <- cbind(rownames(res$bulk.props), res$bulk.props)
+colnames(tmp) <- c("cell_type",samples)
+
+# Save proportion estimates
 text_file <- paste(local_data_path, "deconvolution_output",
                    bulk_type, "bisque_results.tsv", sep = "/")
-write.table(res$bulk.props, file = text_file, sep = "\t")
+write.table(tmp, file = text_file, sep = "\t", row.names = F, quote=F)
