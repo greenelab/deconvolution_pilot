@@ -9,12 +9,12 @@ B cells	Large pre-B cells
 B cells	Small pre-B cells
 B cells	Pre-pro-B cells
 B cells	Pro-B cells
-Cycling cells	Cycling B cells
-Cycling cells	Cycling DCs
-Cycling cells	Cycling gamma-delta T cells
-Cycling cells	Cycling monocytes
-Cycling cells	Cycling NK cells
-Cycling cells	Cycling T cells
+B cells	Cycling B cells
+DC	Cycling DCs
+T cells	Cycling gamma-delta T cells
+Monocytes	Cycling monocytes
+NK cells	Cycling NK cells
+T cells	Cycling T cells
 DC	DC
 DC	DC1
 DC	DC2
