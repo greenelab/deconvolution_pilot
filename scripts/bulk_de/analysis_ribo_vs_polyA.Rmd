@@ -23,12 +23,15 @@ suppressPackageStartupMessages({
   library(DESeq2)
   library(WebGestaltR)
   library(ggplot2)
+  library(rtracklayer)
 })
+
+source("../../config.R")
 ```
 
 ```{r}
 # Load the DESeq2 object with the original count matrix
-deseq_path <- paste(local_data_path, "deseq2_results", sep = "/")
+deseq_path <- paste(local_data_path, "deseq2_output", sep = "/")
 dds <- readRDS(paste(deseq_path, "ribo_vs_polyA_data.rds", sep = "/"))
 
 # Load the DESeqResults object with differentially expressed genes, at FDR 0.1 and 0.05
@@ -53,6 +56,24 @@ as.data.frame(tail(res1, n=20))
 ```
 
 These ^ are the genes that are much more expressed in poly-A selection. The obvious jump-out is the mitochondrial genes. Other things to note are MUC3A, which encodes an epithelial glycoprotein, and a bunch of lncRNAs.
+
+## Volcano plot
+
+We'll now filter down to only protein-coding genes.
+
+```{r}
+genefile <- paste(data_path,"index/refdata-gex-GRCh38-2020-A/genes/genes.gtf",sep = "/")
+gff <- readGFF(genefile)
+protein_coding <- subset(gff, gff$gene_type=="protein_coding")
+
+res1 <- subset(res1, rownames(res1) %in% protein_coding$gene_name)
+```
+
+```{r}
+library(EnhancedVolcano)
+
+EnhancedVolcano(res1, lab = rownames(res1), x = 'log2FoldChange', y = 'pvalue')
+```
 
 ## GSEA
 
