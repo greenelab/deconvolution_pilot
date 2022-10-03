@@ -1,0 +1,68 @@
+Original	Simplified
+B cell	B cells
+B cell memory	B cells
+B cell naive	B cells
+B cell plasma immature	B cells
+B cells naive	B cells
+B_cells	B cells
+Basophil	Basophils
+Bcells	B cells
+CAFs	Fibroblasts
+CD4_Tcells	T cells
+CD8_Tcells	T cells
+Cancer associated fibroblast	Fibroblasts
+Class-switched memory B cell	B cells
+Dendritic_cells	DC
+Endothelial	Endothelial cells
+Endothelial cell	Endothelial cells
+Fibroblasts	Fibroblasts
+Macrophage	Macrophages
+Macrophage M1	Macrophages
+Macrophage M2	Macrophages
+Macrophages	Macrophages
+Macrophages_M1	Macrophages
+Macrophages_M2	Macrophages
+Mast_cells	Mast cells
+Monocyte	Monocytes
+Monocyte conventional	Monocytes
+Monocyte non-conventional	Monocytes
+Monocytes	Monocytes
+Myeloid dendritic cell	DC
+Myeloid dendritic cell activated	DC
+NK cell	NK cells
+NK_cells	NK cells
+NKcells	NK cells
+Neutrophil	Neutrophils
+Plasma_cells	Plasma cells
+Plasmacytoid dendritic cell	pDC
+T cell	T cells
+T cell CD4+	T cells
+T cell CD4+ (non-regulatory)	T cells
+T cell CD4+ central memory	T cells
+T cell CD4+ effector memory	T cells
+T cell CD4+ memory	T cells
+T cell CD4+ naive	T cells
+T cell CD8+	T cells
+T cell CD8+ central memory	T cells
+T cell CD8+ effector memory	T cells
+T cell CD8+ memory	T cells
+T cell CD8+ naive	T cells
+T cell MAIT	T cells
+T cell gamma delta VD2	T cells
+T cell gamma delta non-VD2	T cells
+T cell regulatory (Tregs)	T cells
+T_cells_CD4	T cells
+T_cells_CD8	T cells
+T_cells_gamma_delta	T cells
+T_regulatory_cells	T cells
+otherCells	Epithelial cells
+pDC	pDC
+NK cells	NK cells
+Plasma cells	Plasma cells
+ILC	ILC
+DC	DC
+Mast cells	Mast cells
+B cells	B cells
+T cells	T cells
+Endothelial cells	Endothelial cells
+Epithelial cells	Epithelial cells
