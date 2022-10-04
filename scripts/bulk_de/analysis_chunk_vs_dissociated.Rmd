@@ -24,9 +24,13 @@ suppressPackageStartupMessages({
   library(WebGestaltR)
   library(ggplot2)
   library(rtracklayer)
+  library(yaml)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 ```
 
 ```{r}
@@ -81,7 +85,7 @@ Something involved in apoptosis (PMAIP1), https://www.genecards.org/cgi-bin/card
 
 ## Volcano plot
 
-We'll now filter down to only protein-coding genes.
+We'll now filter down to only protein-coding genes, using info from the gtf file downloaded from the Cellranger website.
 
 ```{r}
 genefile <- paste(data_path,"index/refdata-gex-GRCh38-2020-A/genes/genes.gtf",sep = "/")
