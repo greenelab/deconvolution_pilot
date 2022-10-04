@@ -67,7 +67,12 @@ object_file <- paste(local_data_path, "deconvolution_output",
                      bulk_type, "bayesprism_results_full.rds", sep = "/")
 saveRDS(bp.res, file = object_file)
 
-# Save text version of proportion estimates
+# Format text version of proportion estimates
+theta <- as.data.frame(t(theta))
+theta <- cbind(rownames(theta), theta)
+colnames(theta) <- c("cell_type", samples)
+
+# Save proportion estimates
 text_file <- paste(local_data_path, "deconvolution_output",
                    bulk_type, "bayesprism_results.tsv", sep = "/")
-write.table(theta, file = text_file, sep = "\t")
+write.table(theta, file = text_file, sep = "\t", quote = F, row.names = F)

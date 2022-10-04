@@ -1,10 +1,11 @@
-# EPIC (10.1007/978-1-0716-0327-7_17)
-# https://github.com/GfellerLab/EPIC
+# ABIS (10.1007/978-1-0716-0327-7_18)
+# http://cistrome.org/TIMER/
+
 
 suppressPackageStartupMessages({
   library(data.table)
   library(dplyr)
-  library(EPIC)
+  library(immunedeconv)
 })
 
 bulk_type <- snakemake@wildcards[['bulk_type']]
@@ -43,20 +44,14 @@ for (i in 1:length(samples)) {
 }
 colnames(bulk_matrix) <- samples
 
-# Run epic with default reference cells
-out <- EPIC(bulk = bulk_matrix)
+# Remove the 10 genes with duplicate names
+bulk_matrix <- bulk_matrix[which(!duplicated(rownames(bulk_matrix))),]
 
-# Save epic object for later perusal
-object_file <- paste(local_data_path, "deconvolution_output",
-                     bulk_type, "epic_results_full.rds", sep = "/")
-saveRDS(out, file = object_file)
+# Run TIMER
+indications <- rep("OV", length(samples))
+res <- deconvolute(bulk_matrix, "timer", indications = indications)
 
-# Reformat text version of proportion estimates
-tmp <- as.data.frame(t(out$cellFractions))
-tmp <- cbind(rownames(tmp), tmp)
-colnames(tmp) <- c("cell_type", samples)
-
-# Save proportion estimates
+# Save results to text file
 text_file <- paste(local_data_path, "deconvolution_output",
-                   bulk_type, "epic_results.tsv", sep = "/")
-write.table(tmp, file = text_file, sep = "\t", row.names = F, quote = F)
+                   bulk_type, "timer_results.tsv", sep = "/")
+write.table(res, file = text_file, sep = "\t", row.names = F, quote = F)

@@ -16,13 +16,26 @@ suppressPackageStartupMessages({
 source("../../config.R")
 
 # Load single cell data
-
 sce <- readRDS(paste(local_data_path, 
                      "sce_objects/pooled_clustered_50.rds", sep = "/"))
 
 # Load celltypist results
 ct <- fread(paste(local_data_path,
                   "celltypist_output/pooled_predicted_labels.csv", sep = "/"))
+
+# Load in cell labels from genetic demultiplexing
+labels_dec <- fread(paste(data_path,"pooled_tumors/12162021/vireo/donor_ids.tsv", sep = "/"))
+labels_dec$unique_barcode <- paste("12162021", labels_dec$cell, sep="-")
+labels_jan <- fread(paste(data_path,"pooled_tumors/01132022/vireo/donor_ids.tsv", sep = "/"))
+labels_jan$unique_barcode <- paste("01132022", labels_jan$cell, sep="-")
+labels <- rbind(labels_dec, labels_jan)
+
+# Remove doublets and unassigned cells
+sce$unique_barcode <- paste(sce$Pool, sce$Barcode, sep = "-")
+labels <- labels[labels$unique_barcode %in% sce$unique_barcode, ]
+sce$donor_id <- labels$donor_id
+sce <- sce[, sce$donor_id %in% c("donor0", "donor1", "donor2", "donor3")]
+ct <- ct[ct$V1 %in% sce$unique_barcode, ]
 
 # Consolidate groups for easier deconvolution
 label_table <- fread(paste(local_data_path,

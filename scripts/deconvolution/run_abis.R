@@ -1,10 +1,11 @@
-# EPIC (10.1007/978-1-0716-0327-7_17)
-# https://github.com/GfellerLab/EPIC
+# ABIS (10.1016/j.celrep.2019.01.041)
+# https://github.com/giannimonaco/ABIS
+
 
 suppressPackageStartupMessages({
   library(data.table)
   library(dplyr)
-  library(EPIC)
+  library(immunedeconv)
 })
 
 bulk_type <- snakemake@wildcards[['bulk_type']]
@@ -43,20 +44,23 @@ for (i in 1:length(samples)) {
 }
 colnames(bulk_matrix) <- samples
 
-# Run epic with default reference cells
-out <- EPIC(bulk = bulk_matrix)
+# Run abis
+res <- deconvolute(bulk_matrix, "abis")
 
-# Save epic object for later perusal
-object_file <- paste(local_data_path, "deconvolution_output",
-                     bulk_type, "epic_results_full.rds", sep = "/")
-saveRDS(out, file = object_file)
+# The abis authors say that small negative values (>-5%) are
+# expected as a result of noise and can be set to 0
+res <- as.data.frame(res)
+if(min(res[,-1]) < -5){
+  stop("Error, found a cell type with proportion of -5% or less.
+       This is a sign of strong technical or biological variability
+       and this cell type should be excluded from analysis.")
+}
+res[res < 0] <- 0
 
-# Reformat text version of proportion estimates
-tmp <- as.data.frame(t(out$cellFractions))
-tmp <- cbind(rownames(tmp), tmp)
-colnames(tmp) <- c("cell_type", samples)
-
-# Save proportion estimates
+# Switch to percentage values to allow direct comparison to other proportions'
+res <- cbind(cell_type=res$cell_type, res[,-1]/100)
+  
+# Save results to text file
 text_file <- paste(local_data_path, "deconvolution_output",
-                   bulk_type, "epic_results.tsv", sep = "/")
-write.table(tmp, file = text_file, sep = "\t", row.names = F, quote = F)
+                   bulk_type, "abis_results.tsv", sep = "/")
+write.table(res, file = text_file, sep = "\t", row.names = F, quote = F)
