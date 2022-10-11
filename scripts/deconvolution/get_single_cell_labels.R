@@ -11,9 +11,13 @@ suppressPackageStartupMessages({
   library(SingleCellExperiment)
   library(scater)
   library(dplyr)
+  library(yaml)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 
 # Load single cell data
 sce <- readRDS(paste(local_data_path, 
@@ -61,3 +65,13 @@ sce <- sce[, ct$keep]
 # Save object
 outfile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/")
 saveRDS(sce, file = outfile)
+
+# Save text version of object for scanpy
+rownames(sce) <- rowData(sce)$ID
+counts <- as.matrix(assay(sce))
+colnames(counts) <- sce$unique_barcode
+textfile <- paste(local_data_path, "deconvolution_input", "single_cell_matrix.tsv", sep = "/")
+write.table(counts, textfile, sep = "\t", quote = F)
+
+labelfile <- paste(local_data_path, "deconvolution_input", "cell_labels.tsv", sep = "/")
+write(sce$cellType, labelfile, sep = "\n")
