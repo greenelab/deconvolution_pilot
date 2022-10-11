@@ -4,10 +4,14 @@
 suppressPackageStartupMessages({
   library(data.table)
   library(CDSeq)
+  library(yaml)
 })
 
 bulk_type <- snakemake@wildcards[['bulk_type']]
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
   
 # Generate bulk matrix
 # Note: data_path is loaded from config.R

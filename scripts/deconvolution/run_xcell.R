@@ -6,10 +6,14 @@ suppressPackageStartupMessages({
   library(data.table)
   library(dplyr)
   library(immunedeconv)
+  library(yaml)
 })
 
 bulk_type <- snakemake@wildcards[['bulk_type']]
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 
 # Load transcript-to-gene mapping for TPM data
 tx2_gene <- fread(paste(data_path, "index/tx2gene.tsv", sep = "/"), header = F)

@@ -16,6 +16,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(dplyr)
   library(caret)
+  library(yaml)
 })
 ```
 
@@ -27,7 +28,10 @@ suppressPackageStartupMessages({
 # We have two sets of pooled samples, named after the date they were run (12162021 and 01132022).
 sample_id <- "12162021"
 
-source("../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 ```
 
 ```{r}

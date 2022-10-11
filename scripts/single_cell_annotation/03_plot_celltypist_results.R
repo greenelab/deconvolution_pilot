@@ -5,9 +5,13 @@ suppressPackageStartupMessages({
   library(scater)
   library(batchelor)
   library(dplyr)
+  library(yaml)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 
 # This can be run on an individual sample (valid ids 2251, 2267, 2283, 2293,
 # 2380, 2428, 2467, 2497), an individual pooled run (valid ids 12162021 and
