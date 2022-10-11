@@ -29,9 +29,16 @@ suppressPackageStartupMessages({
   library(RColorBrewer)
   library(PCAtools)
   library(testit)
+  library(biomaRt)
+  library(dplyr)
+  library(yaml)
+  library(cqn)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 ```
 
 ## Load data
@@ -88,23 +95,59 @@ colnames(counts) <- colData$id
 rm(pseudo); gc()
 ```
 
+We'll use gene length and GC content to do CQN normalization. First pull the info from biomaRt:
+
+```{r}
+mart <- useEnsembl("ensembl", dataset = "hsapiens_gene_ensembl")
+gene_coords=getBM(attributes=c("hgnc_symbol","ensembl_gene_id","start_position","end_position",
+                               "percentage_gene_gc_content"), filters="ensembl_gene_id",
+                  values=rownames(counts), mart=mart)
+gene_coords$size=gene_coords$end_position - gene_coords$start_position
+head(gene_coords)
+```
+
+Subset counts to genes with length info and check they're ordered properly:
+```{r}
+gene_coords <- subset(gene_coords, gene_coords$ensembl_gene_id %in% rownames(counts))
+gene_coords <- gene_coords[!duplicated(gene_coords$ensembl_gene_id),]
+counts <- counts[rownames(counts) %in% gene_coords$ensembl_gene_id,]
+
+counts <- counts[order(rownames(counts)),]
+gene_coords <- gene_coords[order(gene_coords$ensembl_gene_id),]
+
+stopifnot(rownames(counts)==gene_coords$ensembl_gene_id)
+```
+
+
+```{r}
+cqn <- cqn(counts = counts,
+         x = gene_coords$percentage_gene_gc_content,
+         lengths = gene_coords$size)
+
+cqnOffset <- cqn$glm.offset
+cqnNormFactors <- exp(cqnOffset)
+```
+
+
 This counts matrix has the genes listed by their Ensembl IDs, which is helpful for uniqueness but bad for readability in the downstream analysis. The easiest way I've found to convert ensembl IDs to gene names for this dataset is by loading in a SingleCellExperiment object from the same experiment, where this mapping is automatically stored.
 
 ```{r}
-sce <- readRDS(paste(sce_path, "pooled_clustered_50.rds", sep = "/"))
-gene_map <- as.data.frame(subset(rowData(sce), select=c("ID","Symbol")))
-gene_map <- gene_map[rownames(counts)==gene_map$ID,]
-rownames(counts) <- gene_map$Symbol
-rm(sce); gc()
+#sce <- readRDS(paste(sce_path, "pooled_clustered_50.rds", sep = "/"))
+#gene_map <- as.data.frame(subset(rowData(sce), select=c("ID","Symbol")))
+#gene_map <- gene_map[rownames(counts)==gene_map$ID,]
+#rownames(counts) <- gene_map$Symbol
+#rm(sce); gc()
 ```
+
+
+
 
 ```{r}
 # Create DESeq object 
 dds <- DESeqDataSetFromMatrix(countData = counts,
                               colData = colData,
-                              #design = ~condition)
                               design = ~ sample + condition)
-dds
+normalizationFactors(dds) <- cqnNormFactors
 ```
 
 The tutorial recommends doing some basic pre-filtering of non- or low-expressed genes to speed up computation, estimate the library depth correction factor, and to clean up later visualizations. 
@@ -168,8 +211,8 @@ So it seems like there are more genes downregulated than up (meaning there are m
 From tutorial: "In DESeq2, the function plotMA shows the log2 fold changes attributable to a given variable over the mean of normalized counts for all the samples in the DESeqDataSet. Points will be colored blue if the adjusted p value is less than 0.1. Points which fall out of the window are plotted as open triangles pointing either up or down."
 
 ```{r}
-plotMA(res, ylim=c(-2,2))
-plotMA(resLFC, ylim=c(-2,2))
+plotMA(res, ylim=c(-4,4))
+plotMA(resLFC, ylim=c(-4,4))
 ```
 
 ### Transformations
@@ -236,6 +279,27 @@ pairsplot(p, colby = "sample", pointSize=2)
 ```
 
 Okay, PCs 2-5 seem to be roughly based on sample, but the overwhelming distinction is sequencing type.
+
+## Checking gene length and GC content
+
+```{r}
+resLFC$ensembl_gene_id <- rownames(resLFC)
+res_df <- as.data.frame(resLFC)
+res_df <- left_join(res_df, gene_coords)
+
+res_df$bin <- "<-4"
+res_df[res_df$log2FoldChange>=-4,]$bin <- "-4_-2"
+res_df[res_df$log2FoldChange>=-2,]$bin <- "-2_0"
+res_df[res_df$log2FoldChange>=0,]$bin <- "0_2"
+res_df[res_df$log2FoldChange>=2,]$bin <- "2_4"
+res_df[res_df$log2FoldChange>=4,]$bin <- ">4"
+res_df$bin <- factor(res_df$bin, levels = c("<-4","-4_-2","-2_0","0_2","2_4",">4"))
+
+ggplot(res_df, mapping = aes(x=bin, y=log10(size))) + geom_boxplot() + ylab("log10(gene length)")
+ggplot(res_df, mapping = aes(x=bin, y=percentage_gene_gc_content)) + geom_boxplot() + ylab("% GC content")
+
+```
+
 
 ## Conclusions
 

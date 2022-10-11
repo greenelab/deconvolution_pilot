@@ -18,7 +18,13 @@ suppressPackageStartupMessages({
   library(DESeq2)
   library(WebGestaltR)
   library(ggplot2)
+  library(yaml)
 })
+
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 ```
 
 ```{r}
