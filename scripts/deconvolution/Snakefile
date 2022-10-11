@@ -4,23 +4,24 @@
 # Variables
 # ---------
 
-# Bulk types: bulk samples to deconvolve. We ran bulk RNA-seq on the samples in three separate ways: rRNA depletion
-# on tumor chunks, dissociation and then rRNA depletion, and dissociation and then polyA (3') capture. We will also
-# add in pseudobulk when we have decided on the proper way to implement it.
+# Bulk types: bulk samples to deconvolve. We ran bulk RNA-seq on the samples in three separate ways: rRNA 
+# depletion on tumor chunks, dissociation and then rRNA depletion, and dissociation and then polyA (3') capture 
+# capture. We will also add in pseudobulk when we have decided on the proper way to implement it.
 # Methods: the deconvolution packages we have implemented. Citation is in the corresponding R script.
 # Samples: the eight samples used in the pilot. This info is needed to run salmon.
 # Threads: number of cores to run on.
 
 BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA'] #TODO: add pseudobulk
-METHODS = [ 'music', 'bisque', 'cdseq', 'bayesprism', 'epic', 'quantiseq', 'mcpcounter', 'xcell', 'consensus_tme', 'abis', 'timer'] # etc.
+METHODS = [ 'music', 'bisque', 'bayesprism', 'epic', 'quantiseq', 'mcpcounter', 'xcell', 'consensus_tme', 'abis', 'timer', 'cibersortx', 'immucellai'] # etc.
 # GRANULARITY = ['low', 'high'] for number of cell types #TODO: decide whether to include
 SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
 THREADS = 6
 
-dir_results = "../../data/deconvolution_output/"
-dir_inputs = "../../data/deconvolution_input/"
-dir_bulk = "../../../sc-cancer-hgsc/data/bulk_tumors"
-dir_index = "../../../sc-cancer-hgsc/data/index"
+dir_results = "/home/ariel/Documents/scRNA/deconvolution_pilot/data/deconvolution_output/"
+dir_inputs = "/home/ariel/Documents/scRNA/deconvolution_pilot/data/deconvolution_input/"
+dir_bulk = "/home/ariel/Documents/scRNA/sc-cancer-hgsc/data/bulk_tumors"
+dir_single = "/home/ariel/Documents/scRNA/sc-cancer-hgsc/data/tumors"
+dir_index = "/home/ariel/Documents/scRNA/sc-cancer-hgsc/data/index"
 
 
 # --------
@@ -46,12 +47,6 @@ rule run_bisque:
 		dir_results + "{bulk_type}/bisque_results.tsv"
 	script:
 		"run_bisque.R"
-
-rule run_cdseq:
-	output:
-		dir_results + "{bulk_type}/cdseq_results.tsv"
-	script:
-		"run_cdseq.R"
 
 rule run_bayesprism:
 	input:
@@ -138,11 +133,61 @@ rule run_timer:
 	script:
 		"run_timer.R"
 
+rule run_cibersortx:
+	input:
+		scdata = dir_inputs + "cibersortx_single_cell_profile.tsv",
+		bulkdata = dir_inputs + "bulk_data_{bulk_type}.tsv"
+	output:
+		dir_results + "{bulk_type}/CIBERSORTx_Results.txt"
+	params:
+		input_dir = dir_inputs,
+		output_dir = dir_results + "{bulk_type}"
+	shell:
+		"""docker run -v {params.input_dir}:/src/data -v {params.output_dir}:/src/outdir cibersortx/fractions --username arielaha@pennmedicine.upenn.edu --token cf9b82840a1da6a080b15a9291a3b8f1 --single_cell TRUE --refsample {input.scdata} --mixture {input.bulkdata} --verbose TRUE"""
+
+rule run_immucellai:
+	input:
+		salmon = lambda wildcards: \
+		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
+		  for sampleid in SAMPLES
+		  ]
+	output:
+		dir_results + "{bulk_type}/immucellai_results.tsv"
+	script:
+		"run_immucellai.R"
+
 # --------------
 # Helper scripts 
 # --------------
 
 # These scripts produce input files needed to run one or more deconvolution methods.
+
+# The output file is write protected so it's not letting me rename,
+# so I'll copy it to the name in the format I want.
+rule mutate_cibersortx:
+	input:
+		dir_results + "{bulk_type}/CIBERSORTx_Results.txt"
+	output:
+		dir_results + "{bulk_type}/cibersortx_results.tsv"
+	script:
+		"get_formatted_cibersort_results.R"
+
+
+rule make_bulk_data_matrix:
+	output:
+		dir_inputs + "bulk_data_{bulk_type}.tsv"
+	script:
+		"get_bulk_matrix.R"
+
+# Formats the single cell matrix as needed for cibersortx
+rule get_labels_as_colnames:
+	input:
+		dir_inputs + "labeled_single_cell_profile.rds"
+	output:
+		dir_inputs + "cibersortx_single_cell_profile.tsv"
+	script:
+		"get_cibersort_matrix.R"
+
 
 # Generates a reference profile object for methods using single cell.
 rule get_single_cell_labels:
@@ -156,6 +201,7 @@ rule get_single_cell_labels:
 # script refactors the existing cellTypist data to fit the needed parameters.
 rule get_cell_states:
 	input:
+		dir_inputs + "labeled_single_cell_profile.rds"
 	output:
 		dir_inputs + "labeled_cell_state_profile.rds"
 	script:
@@ -167,11 +213,11 @@ rule run_salmon:
 	input:
 		r1 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R1_merged.fastq.gz",
 		r2 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R2_merged.fastq.gz",
-		bin = "../../../sc-cancer-hgsc/data/index/salmon_index/refseq.bin"
+		bin = dir_index + "/salmon_index/refseq.bin"
 	output:
 		dir_bulk + "/{sample}/{bulk_type}/salmon/quant.sf"
 	params:
-		index = "../../../sc-cancer-hgsc/data/index/salmon_index",
+		index = dir_index + "/salmon_index",
 		outdir = dir_bulk + "/{sample}/{bulk_type}/salmon"
 	shell:
 		"salmon quant -i {params.index} -l A -1 {input.r1} -2 {input.r2} -o {params.outdir} -p {THREADS}"
@@ -179,10 +225,10 @@ rule run_salmon:
 # Salmon requires a previously generated index.
 rule get_salmon_index:
 	output:
-		"../../../sc-cancer-hgsc/data/index/salmon_index/refseq.bin"
+		dir_index + "salmon_index/refseq.bin"
 	params:
 		index = dir_index + "/salmon_index",
 		genome = dir_index + "/gencode.v32.transcripts.fa.gz",
                 genes = dir_index + "/refdata-gex-GRCh38-2020-A/genes/genes.gtf"
 	shell:
-		"salmon index -i {params.index} -t {params.genome} -k 23 -p {THREADS} --gencode"	
+		"salmon index -i {params.index} -t {params.genome} -k 23 -p {THREADS} --gencode"
