@@ -7,9 +7,13 @@ suppressPackageStartupMessages({
   library(miQC)
   library(ggplot2)
   library(dplyr)
+  library(yaml)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 
 ## Load data
 
@@ -26,6 +30,9 @@ if (length(args)==0) {
 hashing <- fread(paste(data_path, "pooled_tumors", sample_id,
 		       "Cellranger/outs/multi/multiplexing_analysis/assignment_confidence_table.csv", sep = "/"))
 vireo <- fread(paste(data_path, "pooled_tumors", sample_id, "vireo/donor_ids.tsv", sep = "/"))
+
+# Cut off "anti-human" part of hashtag labels
+hashing$Assignment <- gsub("anti-human_","",hashing$Assignment)
 
 # Load SingleCellExperiment object for plotting
 sce <- readRDS(paste(local_data_path,"/sce_objects/", sample_id, ".rds", sep = ""))
@@ -49,22 +56,22 @@ moderate[moderate$Assignment == "Unassigned" &
            moderate$`anti-human_Hashtag1` >= mod_hashtag_prob & 
            moderate$`anti-human_Hashtag2` <= other_hashtag_prob &
            moderate$`anti-human_Hashtag3` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "anti-human_Hashtag1"
+           moderate$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "Hashtag1"
 moderate[moderate$Assignment == "Unassigned" &
            moderate$`anti-human_Hashtag1` <= other_hashtag_prob &
            moderate$`anti-human_Hashtag2` >= mod_hashtag_prob &
            moderate$`anti-human_Hashtag3` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "anti-human_Hashtag2"
+           moderate$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "Hashtag2"
 moderate[moderate$Assignment == "Unassigned" &
            moderate$`anti-human_Hashtag1` <= other_hashtag_prob &
            moderate$`anti-human_Hashtag2` <= other_hashtag_prob &
            moderate$`anti-human_Hashtag3` >= mod_hashtag_prob &
-           moderate$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "anti-human_Hashtag3"
+           moderate$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "Hashtag3"
 moderate[moderate$Assignment == "Unassigned" &
            moderate$`anti-human_Hashtag1` <= other_hashtag_prob &
            moderate$`anti-human_Hashtag2` <= other_hashtag_prob &
            moderate$`anti-human_Hashtag3` <= other_hashtag_prob &
-           moderate$`anti-human_Hashtag4` >= mod_hashtag_prob, ]$Assignment = "anti-human_Hashtag4"
+           moderate$`anti-human_Hashtag4` >= mod_hashtag_prob, ]$Assignment = "Hashtag4"
 table(moderate$Assignment)
 
 # Make new assignments based on liberal cutoffs
@@ -75,22 +82,22 @@ liberal[liberal$Assignment == "Unassigned" &
           liberal$`anti-human_Hashtag1` >= lib_hashtag_prob & 
           liberal$`anti-human_Hashtag2` <= other_hashtag_prob &
           liberal$`anti-human_Hashtag3` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "anti-human_Hashtag1"
+          liberal$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "Hashtag1"
 liberal[liberal$Assignment == "Unassigned" &
           liberal$`anti-human_Hashtag1` <= other_hashtag_prob &
           liberal$`anti-human_Hashtag2` >= lib_hashtag_prob &
           liberal$`anti-human_Hashtag3` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "anti-human_Hashtag2"
+          liberal$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "Hashtag2"
 liberal[liberal$Assignment == "Unassigned" &
           liberal$`anti-human_Hashtag1` <= other_hashtag_prob &
           liberal$`anti-human_Hashtag2` <= other_hashtag_prob &
           liberal$`anti-human_Hashtag3` >= lib_hashtag_prob &
-          liberal$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "anti-human_Hashtag3"
+          liberal$`anti-human_Hashtag4` <= other_hashtag_prob, ]$Assignment = "Hashtag3"
 liberal[liberal$Assignment == "Unassigned" &
           liberal$`anti-human_Hashtag1` <= other_hashtag_prob &
           liberal$`anti-human_Hashtag2` <= other_hashtag_prob &
           liberal$`anti-human_Hashtag3` <= other_hashtag_prob &
-          liberal$`anti-human_Hashtag4` >= lib_hashtag_prob, ]$Assignment = "anti-human_Hashtag4"
+          liberal$`anti-human_Hashtag4` >= lib_hashtag_prob, ]$Assignment = "Hashtag4"
 table(liberal$Assignment)
 
 
@@ -150,18 +157,18 @@ get_colors <- function(assignment) {
 
 # Plot hash demultiplexing assignments at the different filtering thresholds
 png(paste("../../plots/pooled/", sample_id, "_UMAP_assignment_90.png", sep=""), width = 700)
-colors <- get_colors(sce$assignment_cons); plotUMAP(sce, colour_by = "assignment_cons") + colors
+colors <- get_colors(sce$assignment_cons); plotUMAP(sce, colour_by = "assignment_cons") + colors + theme(text = element_text(size = 16))
 dev.off()
 
 png(paste("../../plots/pooled/", sample_id, "_UMAP_assignment_85.png", sep=""), width = 700)
-colors <- get_colors(sce$assignment_mod); plotUMAP(sce, colour_by = "assignment_mod") + colors
+colors <- get_colors(sce$assignment_mod); plotUMAP(sce, colour_by = "assignment_mod") + colors + theme(text = element_text(size = 16))
 dev.off()
 
 png(paste("../../plots/pooled/", sample_id, "_UMAP_assignment_80.png", sep=""), width = 700)
-colors <- get_colors(sce$assignment_lib); plotUMAP(sce, colour_by = "assignment_lib") + colors
+colors <- get_colors(sce$assignment_lib); plotUMAP(sce, colour_by = "assignment_lib") + colors + theme(text = element_text(size = 16))
 dev.off()
 
 # Plot genetic demultiplexing assignments
 png(paste("../../plots/pooled/", sample_id, "_UMAP_assignment_genetic.png", sep=""), width = 700)
-colors <- get_colors(sce$assignment_vireo); plotUMAP(sce, colour_by = "assignment_vireo") + colors
+colors <- get_colors(sce$assignment_vireo); plotUMAP(sce, colour_by = "assignment_vireo") + colors + theme(text = element_text(size = 16))
 dev.off()
