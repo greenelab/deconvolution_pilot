@@ -126,6 +126,7 @@ cqn <- cqn(counts = counts,
 
 cqnOffset <- cqn$glm.offset
 cqnNormFactors <- exp(cqnOffset)
+cqnNormFactors <- cqnNormFactors / exp(rowMeans(log(cqnNormFactors)))
 ```
 
 
