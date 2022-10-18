@@ -7,9 +7,13 @@ suppressPackageStartupMessages({
   library(scater)
   library(miQC)
   library(ggplot2)
+  library(yaml)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 
 # We have two sets of pooled samples, named after the date they were run (12162021 and 01132022).
 args = commandArgs(trailingOnly=TRUE)

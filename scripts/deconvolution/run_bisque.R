@@ -5,10 +5,14 @@ suppressPackageStartupMessages({
   library(data.table)
   library(SingleCellExperiment)
   library(BisqueRNA)
+  library(yaml)
 })
 
 bulk_type <- snakemake@wildcards[['bulk_type']]
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 
 # Load single cell data into ExpressionSet object
 sce <- readRDS(paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/"))

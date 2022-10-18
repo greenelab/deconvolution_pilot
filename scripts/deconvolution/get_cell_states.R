@@ -10,9 +10,13 @@ suppressPackageStartupMessages({
   library(scran)
   library(igraph)
   library(dplyr)
+  library(yaml)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 
 # Load single cell data
 infile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/")
@@ -23,9 +27,6 @@ sce$unique_barcode <- paste(sce$Pool, sce$Barcode, sep = "-")
 ct <- fread(paste(local_data_path, "celltypist_output/pooled_predicted_labels.csv", sep = "/"))
 ct <- ct[ct$V1 %in% sce$unique_barcode,]
 sce$cellState <- ct$majority_voting
-
-# Group macrophages, monocytes, DCs into "myeloid" for cellType
-sce$cellType[sce$cellType %in% c("DC","pDC","Monocytes","Macrophages")] <- "Myeloid"
 
 table(sce$cellType)
 table(sce$cellState)

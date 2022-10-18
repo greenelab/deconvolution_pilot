@@ -5,9 +5,13 @@ suppressPackageStartupMessages({
   library(scater)
   library(miQC)
   library(ggplot2)
+  library(yaml)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 
 # Valid sample ids for pilot: 2251, 2267, 2283, 2293, 2380, 2428, 2467, 2497
 args = commandArgs(trailingOnly=TRUE)

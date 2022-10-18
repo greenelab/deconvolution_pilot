@@ -12,9 +12,13 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(BisqueRNA)
   library(MuSiC)
+  library(yaml)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
 
 # Load single cell data
 sce <- readRDS("../../data/sce_objects/pooled_clustered_50.rds")
