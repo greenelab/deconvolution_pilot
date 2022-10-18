@@ -133,6 +133,18 @@ rule run_timer:
 	script:
 		"run_timer.R"
 
+
+# Read in credentials for cibersortx license
+def get_token(wildcards):
+	with open("cibersort_token.txt", "r") as f:
+		token = f.read().strip()
+	return token
+
+def get_username(wildcards):
+	with open("cibersort_username.txt", "r") as f:
+		username = f.read().strip()
+	return username
+
 rule run_cibersortx:
 	input:
 		scdata = dir_inputs + "cibersortx_single_cell_profile.tsv",
@@ -141,9 +153,11 @@ rule run_cibersortx:
 		dir_results + "{bulk_type}/CIBERSORTx_Results.txt"
 	params:
 		input_dir = dir_inputs,
-		output_dir = dir_results + "{bulk_type}"
+		output_dir = dir_results + "{bulk_type}",
+		token=get_token,
+		username=get_username
 	shell:
-		"""docker run -v {params.input_dir}:/src/data -v {params.output_dir}:/src/outdir cibersortx/fractions --username arielaha@pennmedicine.upenn.edu --token cf9b82840a1da6a080b15a9291a3b8f1 --single_cell TRUE --refsample {input.scdata} --mixture {input.bulkdata} --verbose TRUE"""
+		"""docker run -v {params.input_dir}:/src/data -v {params.output_dir}:/src/outdir cibersortx/fractions --username {params.username} --token {params.token} --single_cell TRUE --refsample {input.scdata} --mixture {input.bulkdata} --verbose TRUE"""
 
 rule run_immucellai:
 	input:
