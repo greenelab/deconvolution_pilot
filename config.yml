@@ -1,3 +1,4 @@
 data_path: "/home/ariel/Documents/scRNA/sc-cancer-hgsc/data"
 local_data_path: "/home/ariel/Documents/scRNA/deconvolution_pilot/data"
+plot_path: "/home/ariel/Documents/scRNA/deconvolution_pilot/plots"
 samples: ["2251", "2267", "2283", "2293", "2380", "2428", "2467", "2497"]

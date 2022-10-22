@@ -41,6 +41,11 @@ load_melted_sc <- function(granular = FALSE){
 # Load all deconvolution results into a single dataframe, with one
 # row for each combination of cell type x method x bulk type x sample
 load_melted_results <- function(){
+    # Get the file locations of all deconvolution results
+    output <- paste(local_data_path, "deconvolution_output", sep = "/")
+    files <- list.files(output, full.names = T, recursive = T)
+    files <- grep(".tsv", files, value = TRUE)
+
     melted_results <- data.frame()
     for(i in 1:length(files)){
         resultfile <- files[i]
