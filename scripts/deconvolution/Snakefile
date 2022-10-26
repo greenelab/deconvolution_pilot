@@ -4,16 +4,19 @@
 # Variables
 # ---------
 
-# Bulk types: bulk samples to deconvolve. We ran bulk RNA-seq on the samples in three separate ways: rRNA 
-# depletion on tumor chunks, dissociation and then rRNA depletion, and dissociation and then polyA (3') capture 
-# capture. We will also add in pseudobulk when we have decided on the proper way to implement it.
-# Methods: the deconvolution packages we have implemented. Citation is in the corresponding R script.
+# Bulk types: all sets of samples to deconvolve, including true bulk and pseudobulk.
+# True bulk types: We ran bulk RNA-seq on the samples in three separate ways: rRNA depletion on
+# tumor chunks, dissociation and then rRNA depletion, and dissociation and then polyA (3') capture.
+# Pseudobulk types: Different simulated pseudobulk datasets, derived from our single-cell data.
+# Methods: the deconvolution packages we have implemented. Citation in the corresponding R script.
 # Samples: the eight samples used in the pilot. This info is needed to run salmon.
 # Threads: number of cores to run on.
 
-BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA'] #TODO: add pseudobulk
-METHODS = [ 'music', 'bisque', 'bayesprism', 'epic', 'quantiseq', 'mcpcounter', 'xcell', 'consensus_tme', 'abis', 'timer', 'cibersortx', 'immucellai'] # etc.
-# GRANULARITY = ['low', 'high'] for number of cell types #TODO: decide whether to include
+BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA', 'realistic', 'even', 'weighted', 'sparse']
+TRUEBULKTYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA']
+PSEUDOBULKTYPES = ['realistic', 'even', 'weighted', 'sparse']
+#METHODS = [ 'music', 'bisque', 'bayesprism', 'epic', 'quantiseq', 'mcpcounter', 'xcell', 'consensus_tme', 'abis', 'timer', 'cibersortx', 'immucellai'] # etc.
+METHODS = [ 'cibersortx' ]
 SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
 THREADS = 6
 
@@ -23,6 +26,9 @@ dir_bulk = "/home/ariel/Documents/scRNA/sc-cancer-hgsc/data/bulk_tumors"
 dir_single = "/home/ariel/Documents/scRNA/sc-cancer-hgsc/data/tumors"
 dir_index = "/home/ariel/Documents/scRNA/sc-cancer-hgsc/data/index"
 
+wildcard_constraints:
+	truebulktype="[A-Za-z]+_[A-Za-z]+",
+	pseudobulktype="[A-Za-z]+"
 
 # --------
 # Workflow
@@ -30,38 +36,44 @@ dir_index = "/home/ariel/Documents/scRNA/sc-cancer-hgsc/data/index"
 
 rule all:
 	input:
-		expand(dir_results + "{bulk_type}/{method}_results.tsv", bulk_type=BULK_TYPES, method=METHODS)
+		expand(dir_results + "{bulk_type}/{method}_results.tsv", bulk_type=BULK_TYPES, method=METHODS, truebulktype=TRUEBULKTYPES)
 
 rule run_music:
 	input:
-		dir_inputs + "labeled_single_cell_profile.rds"
+		dir_inputs + "labeled_single_cell_profile.rds",
+		dir_inputs + "bulk_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/music_results.tsv"
+	threads:
+		THREADS
 	script:
 		"run_music.R"
 
 rule run_bisque:
 	input:
-		dir_inputs + "labeled_single_cell_profile.rds"
+		dir_inputs + "labeled_single_cell_profile.rds",
+		dir_inputs + "bulk_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/bisque_results.tsv"
+	threads:
+		THREADS
 	script:
 		"run_bisque.R"
 
 rule run_bayesprism:
 	input:
-		dir_inputs + "labeled_cell_state_profile.rds"
+		dir_inputs + "labeled_cell_state_profile.rds",
+		dir_inputs + "bulk_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/bayesprism_results.tsv"
+	threads: 
+		THREADS
 	script:
 		"run_bayesprism.R"
 
 rule run_epic:
 	input:
-		salmon = lambda wildcards: \
-		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
-		  for sampleid in SAMPLES
-		  ]
+		dir_inputs + "normalized_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/epic_results.tsv"
 	script:
@@ -69,10 +81,7 @@ rule run_epic:
 
 rule run_mcpcounter:
 	input:
-		salmon = lambda wildcards: \
-		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
-		  for sampleid in SAMPLES
-		  ]
+		dir_inputs + "normalized_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/mcpcounter_results.tsv"
 	script:
@@ -80,21 +89,15 @@ rule run_mcpcounter:
 
 rule run_quantiseq:
 	input:
-		salmon = lambda wildcards: \
-		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
-		  for sampleid in SAMPLES
-		  ]
+		dir_inputs + "normalized_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/quantiseq_results.tsv"
 	script:
 		"run_quantiseq.R"
 
 rule run_xcell:
-	input:	
-		salmon = lambda wildcards: \
-		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
-		  for sampleid in SAMPLES
-		  ]
+	input:
+		dir_inputs + "normalized_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/xcell_results.tsv"
 	script:
@@ -102,10 +105,7 @@ rule run_xcell:
 
 rule run_consensus_tme:
 	input:
-		salmon = lambda wildcards: \
-		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
-		  for sampleid in SAMPLES
-		  ]
+		dir_inputs + "normalized_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/consensus_tme_results.tsv"
 	script:
@@ -113,10 +113,7 @@ rule run_consensus_tme:
 
 rule run_abis:
 	input:
-		salmon = lambda wildcards: \
-		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
-		  for sampleid in SAMPLES
-		  ]
+		dir_inputs + "normalized_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/abis_results.tsv"
 	script:
@@ -124,10 +121,7 @@ rule run_abis:
 
 rule run_timer:
 	input:
-		salmon = lambda wildcards: \
-		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
-		  for sampleid in SAMPLES
-		  ]
+		dir_inputs + "normalized_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/timer_results.tsv"
 	script:
@@ -151,6 +145,8 @@ rule run_cibersortx:
 		bulkdata = dir_inputs + "bulk_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/CIBERSORTx_Results.txt"
+	threads:
+		THREADS
 	params:
 		input_dir = dir_inputs,
 		output_dir = dir_results + "{bulk_type}",
@@ -161,10 +157,7 @@ rule run_cibersortx:
 
 rule run_immucellai:
 	input:
-		salmon = lambda wildcards: \
-		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.bulk_type) \
-		  for sampleid in SAMPLES
-		  ]
+		dir_inputs + "normalized_data_{bulk_type}.tsv"
 	output:
 		dir_results + "{bulk_type}/immucellai_results.tsv"
 	script:
@@ -176,6 +169,15 @@ rule run_immucellai:
 
 # These scripts produce input files needed to run one or more deconvolution methods.
 
+# Formats the single cell matrix as needed for cibersortx
+rule get_labels_as_colnames:
+	input:
+		dir_inputs + "labeled_single_cell_profile.rds"
+	output:
+		dir_inputs + "cibersortx_single_cell_profile.tsv"
+	script:
+		"get_cibersort_matrix.R"
+
 # The output file is write protected so it's not letting me rename,
 # so I'll copy it to the name in the format I want.
 rule mutate_cibersortx:
@@ -186,26 +188,39 @@ rule mutate_cibersortx:
 	script:
 		"get_formatted_cibersort_results.R"
 
-
+# Write STAR output into a unified matrix
 rule make_bulk_data_matrix:
 	output:
-		dir_inputs + "bulk_data_{bulk_type}.tsv"
+		dir_inputs + "bulk_data_{truebulktype}.tsv"
+	priority:
+		10000
 	script:
 		"get_bulk_matrix.R"
 
-# Formats the single cell matrix as needed for cibersortx
-rule get_labels_as_colnames:
+# Write salmon output into a unified matrix
+rule make_tpm_bulk_data_matrix:
 	input:
-		dir_inputs + "labeled_single_cell_profile.rds"
+		salmon = lambda wildcards: \
+		  [dir_bulk + "/{0}/{1}/salmon/quant.sf".format(sampleid, wildcards.truebulktype) \
+		  for sampleid in SAMPLES
+		  ],
 	output:
-		dir_inputs + "cibersortx_single_cell_profile.tsv"
+		dir_inputs + "normalized_data_{truebulktype}.tsv"
+	priority:
+		9000
 	script:
-		"get_cibersort_matrix.R"
+		"get_normalized_bulk_matrix.R"
 
+# Make pseudobulk files
+rule get_pseudobulk_files:
+	output:
+		dir_inputs + "bulk_data_{pseudobulktype}.tsv",
+		dir_inputs + "normalized_data_{pseudobulktype}.tsv"
+	script:
+		"get_simulated_pseudobulk.R"
 
 # Generates a reference profile object for methods using single cell.
 rule get_single_cell_labels:
-	input:
 	output:
 		dir_inputs + "labeled_single_cell_profile.rds"
 	script:
@@ -225,14 +240,14 @@ rule get_cell_states:
 # preferred way to get TPM values is by quantifying the transcriptome via salmon.
 rule run_salmon:
 	input:
-		r1 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R1_merged.fastq.gz",
-		r2 = dir_bulk + "/{sample}/{bulk_type}/{sample}_R2_merged.fastq.gz",
+		r1 = dir_bulk + "/{sample}/{truebulktype}/{sample}_R1_merged.fastq.gz",
+		r2 = dir_bulk + "/{sample}/{truebulktype}/{sample}_R2_merged.fastq.gz",
 		bin = dir_index + "/salmon_index/refseq.bin"
 	output:
-		dir_bulk + "/{sample}/{bulk_type}/salmon/quant.sf"
+		dir_bulk + "/{sample}/{truebulktype}/salmon/quant.sf"
 	params:
 		index = dir_index + "/salmon_index",
-		outdir = dir_bulk + "/{sample}/{bulk_type}/salmon"
+		outdir = dir_bulk + "/{sample}/{truebulktype}/salmon"
 	shell:
 		"salmon quant -i {params.index} -l A -1 {input.r1} -2 {input.r2} -o {params.outdir} -p {THREADS}"
 
