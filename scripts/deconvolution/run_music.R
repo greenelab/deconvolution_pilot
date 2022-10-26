@@ -27,9 +27,9 @@ single_cell <- ExpressionSet(as.matrix(assay(sce)), phenoData = pheno)
 
 # Load bulk data into ExpressionSet object
 bulk_matrix <- fread(paste(local_data_path, "/deconvolution_input/",
-                           "bulk_data_", bulk_type, ".tsv", sep = ""),
-                     header = T)
-genes <- bulk_matrix$Gene; bulk_matrix$Gene <- NULL
+                           "bulk_data_", bulk_type, ".tsv", sep = ""))
+genes <- bulk_matrix$V1; bulk_matrix$V1 <- NULL
+sample_names <- colnames(bulk_matrix)
 bulk_matrix <- as.matrix(bulk_matrix)
 rownames(bulk_matrix) <- genes
 bulk <- ExpressionSet(bulk_matrix)
@@ -49,11 +49,11 @@ saveRDS(mus, file = object_file)
 # Format text versions of proportion estimates
 nnls <- t(mus$Est.prop.allgene)
 nnls <- cbind(rownames(nnls), nnls)
-colnames(nnls) <- c("cell_type", samples)
+colnames(nnls) <- c("cell_type", sample_names)
 
 music <- t(mus$Est.prop.weighted)
 music <- cbind(rownames(music), music)
-colnames(music) <- c("cell_type", samples)
+colnames(music) <- c("cell_type", sample_names)
 
 # Save text versions of proportion estimates
 text_file <- paste(local_data_path, "deconvolution_output",

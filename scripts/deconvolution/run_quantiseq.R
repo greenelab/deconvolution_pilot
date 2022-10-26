@@ -30,15 +30,8 @@ labels <- fread(paste(local_data_path,"deconvolution_input",
 setnames(labels, "Original", "cell_type")
 res <- inner_join(labels, res)
 
-res <- res %>% group_by(Simplified) %>%
-  summarize(`2251`=sum(`2251`),
-            `2267`=sum(`2267`),
-            `2283`=sum(`2283`),
-            `2293`=sum(`2293`),
-            `2380`=sum(`2380`),
-            `2428`=sum(`2428`),
-            `2467`=sum(`2467`),
-            `2497`=sum(`2497`))
+fractions <- setdiff(colnames(res), c("cell_type","Simplified"))
+res <- res %>% group_by(Simplified) %>% summarize_at(vars(fractions), sum)
 setnames(res, "Simplified", "cell_type")
 
 

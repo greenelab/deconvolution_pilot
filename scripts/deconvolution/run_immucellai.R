@@ -33,7 +33,7 @@ saveRDS(res, file = object_file)
 # Reformat output data to match style of other deconvolution methods
 out <- t(res$Sample_abundance)
 out <- cbind(rownames(out),out)
-colnames(out) <- c("cell_type", samples)
+colnames(out) <- c("cell_type", colnames(bulk_matrix))
 
 outfile <- paste(local_data_path, "deconvolution_output", bulk_type,
                  "immucellai_results.tsv", sep = "/")

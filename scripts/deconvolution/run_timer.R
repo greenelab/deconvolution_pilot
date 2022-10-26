@@ -26,7 +26,7 @@ rownames(bulk_matrix) <- genes
 bulk_matrix <- bulk_matrix[which(!duplicated(rownames(bulk_matrix))),]
 
 # Run TIMER
-indications <- rep("OV", length(samples))
+indications <- rep("OV", ncol(bulk_matrix))
 res <- deconvolute(bulk_matrix, "timer", indications = indications)
 
 # Save results to text file

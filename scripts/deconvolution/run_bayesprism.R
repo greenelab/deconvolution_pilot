@@ -17,9 +17,9 @@ samples <- params$samples
 # Get bulk counts matrix
 # Note: local_data_path is loaded from config.R
 bulk_matrix <- fread(paste(local_data_path, "/deconvolution_input/",
-                           "bulk_data_", bulk_type, ".tsv", sep = ""),
-                     header = T)
-genes <- bulk_matrix$Gene; bulk_matrix$Gene <- NULL
+                           "bulk_data_", bulk_type, ".tsv", sep = ""))
+genes <- bulk_matrix$V1; bulk_matrix$V1 <- NULL
+sample_names <- colnames(bulk_matrix)
 bulk_matrix <- t(bulk_matrix)
 colnames(bulk_matrix) <- genes
 
@@ -64,7 +64,7 @@ saveRDS(bp.res, file = object_file)
 # Format text version of proportion estimates
 theta <- as.data.frame(t(theta))
 theta <- cbind(rownames(theta), theta)
-colnames(theta) <- c("cell_type", samples)
+colnames(theta) <- c("cell_type", sample_names)
 
 # Save proportion estimates
 text_file <- paste(local_data_path, "deconvolution_output",

@@ -32,7 +32,7 @@ saveRDS(out, file = object_file)
 # Reformat text version of proportion estimates
 tmp <- as.data.frame(t(out$cellFractions))
 tmp <- cbind(rownames(tmp), tmp)
-colnames(tmp) <- c("cell_type", samples)
+colnames(tmp) <- c("cell_type", colnames(bulk_matrix))
 
 # Rename labels based on single-cell categories
 # Based on a line in the Racle and Gfeller paper, we're going to
@@ -42,15 +42,8 @@ labels <- fread(paste(local_data_path, "deconvolution_input",
 setnames(labels, "Original", "cell_type")
 tmp <- inner_join(labels, tmp)
 
-tmp <- tmp %>% group_by(Simplified) %>%
-  summarize(`2251`=sum(`2251`),
-            `2267`=sum(`2267`),
-            `2283`=sum(`2283`),
-            `2293`=sum(`2293`),
-            `2380`=sum(`2380`),
-            `2428`=sum(`2428`),
-            `2467`=sum(`2467`),
-            `2497`=sum(`2497`))
+fractions <- setdiff(colnames(tmp), c("cell_type","Simplified"))
+tmp <- tmp %>% group_by(Simplified) %>% summarize_at(vars(fractions), sum)
 setnames(tmp, "Simplified", "cell_type")
 
 # Save proportion estimates
