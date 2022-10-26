@@ -1,10 +1,12 @@
+# Since cibersortx isn"t run within a script, it needs a separate script to
+# rename and format to match the other methods" results.
 suppressPackageStartupMessages({
   library(data.table)
   library(dplyr)
   library(yaml)
 })
 
-bulk_type <- snakemake@wildcards[['bulk_type']]
+bulk_type <- snakemake@wildcards[["bulk_type"]]
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path

@@ -178,8 +178,7 @@ rule get_labels_as_colnames:
 	script:
 		"get_cibersort_matrix.R"
 
-# The output file is write protected so it's not letting me rename,
-# so I'll copy it to the name in the format I want.
+# Rename and format cibersortx to match the other methods' results.
 rule mutate_cibersortx:
 	input:
 		dir_results + "{bulk_type}/CIBERSORTx_Results.txt"

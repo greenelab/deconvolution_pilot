@@ -1,3 +1,9 @@
+# With pseudobulk data, it's possible to know the "true" cell type proportions
+# and make direct comparisons. Here we will measure the relationships between
+# deconvolution results and true proportions in two ways: by computing their
+# correlations (what's normally done for benchmarks) and by plotting the 
+# deconvolution results minus the true proportions by cell type. 
+
 suppressPackageStartupMessages({
   library(data.table)
   library(SingleCellExperiment)

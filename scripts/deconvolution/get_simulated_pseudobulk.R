@@ -12,6 +12,9 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
+# There's a bug in the SimBu code which causes mislabeled cell types in one
+# use case. I submitted it as an issue on their github and they said they'll
+# fix it soon, but in the meantime I copied the code and made the change myself.
 source("../SimBu/R/dataset.R")
 source("../SimBu/R/simulator.R")
 
@@ -51,7 +54,7 @@ reformat_fractions <- function(overall, specific, i) {
     overall <- full_join(overall, specific)
     overall[is.na(overall)] <- 0
   }
-  
+ 
   overall
 }
 

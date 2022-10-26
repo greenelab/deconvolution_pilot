@@ -38,6 +38,8 @@ load_melted_sc <- function(granular = FALSE){
     melted_sc
 }
 
+
+# Load in pseudobulk "true fractions" (as provided by SimBu) into a dataframe
 load_pseudobulk_fractions <- function(pseudobulk_types){
   melted_fractions <- data.frame()
   for(i in 1:length(pseudobulk_types)){
@@ -56,6 +58,7 @@ load_pseudobulk_fractions <- function(pseudobulk_types){
   
   melted_fractions
 }
+
 
 # Load all deconvolution results into a single dataframe, with one
 # row for each combination of cell type x method x bulk type x sample
@@ -84,7 +87,6 @@ load_melted_results <- function(){
     
     melted_results
 }
-
 
 
 # Unify cell type nomenclature across methods
