@@ -38,6 +38,25 @@ load_melted_sc <- function(granular = FALSE){
     melted_sc
 }
 
+load_pseudobulk_fractions <- function(pseudobulk_types){
+  melted_fractions <- data.frame()
+  for(i in 1:length(pseudobulk_types)){
+    pseudo_type <- pseudobulk_types[i]
+    fractfile <- paste(local_data_path, "/deconvolution_input/",
+                       "cell_type_fractions_", pseudo_type, ".tsv", sep = "")
+    fraction <- fread(fractfile)
+    setnames(fraction, "V1", "sample")
+    y <- melt(fraction)
+    y$bulk_type <- pseudo_type
+    
+    melted_fractions <- rbind(melted_fractions, y)
+  }
+  setnames(melted_fractions, "value", "proportion")
+  setnames(melted_fractions, "variable", "cell_type")
+  
+  melted_fractions
+}
+
 # Load all deconvolution results into a single dataframe, with one
 # row for each combination of cell type x method x bulk type x sample
 load_melted_results <- function(){
@@ -65,6 +84,8 @@ load_melted_results <- function(){
     
     melted_results
 }
+
+
 
 # Unify cell type nomenclature across methods
 rename_cell_types <- function(results_file) {
