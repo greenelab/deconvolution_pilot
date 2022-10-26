@@ -1,6 +1,6 @@
-# Since we're running CIBERSORTx on the console instead of inside a script,
-# we need the bulk data matrix saved to file. TODO: decide if I should go
-# back and have the other deconvolution methods load in this file.
+# While we were originally loading the bulk data within each method's script,
+# it made more sense to create the matrix once and load it each time. This is
+# also more compatible with CIBERSORTx, which is run on the command line.
 
 suppressPackageStartupMessages({
   library(data.table)
@@ -10,7 +10,7 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
-bulk_type <- snakemake@wildcards[['truebulktype']]
+bulk_type <- snakemake@wildcards[["truebulktype"]]
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
