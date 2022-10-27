@@ -15,28 +15,18 @@ local_data_path <- params$local_data_path
 samples <- params$samples
 
 # Get bulk counts matrix
-# Note: data_path is loaded from config.R
-bulk_matrix <- matrix()
-for (i in 1:length(samples)) {
-  sample_id <- samples[i]
-  bulk_tmp_file <- paste(data_path, "bulk_tumors", sample_id, bulk_type,
-                         "STAR/ReadsPerGene.out.tab", sep = "/")
-  bulk_tmp <- fread(bulk_tmp_file)
-  bulk_tmp <- bulk_tmp[grep("ENSG", bulk_tmp$V1), ]
-  setnames(bulk_tmp, "V2", sample_id)
-  if (i == 1) {
-    bulk_matrix <- as.matrix(bulk_tmp[, 2])
-    rownames(bulk_matrix) <- bulk_tmp$V1
-  } else {
-    bulk_matrix <- cbind(bulk_matrix, as.matrix(bulk_tmp[, 2]))
-  }
-}
+# Note: local_data_path is loaded from config.R
+bulk_matrix <- fread(paste(local_data_path, "/deconvolution_input/",
+                           "bulk_data_", bulk_type, ".tsv", sep = ""))
+genes <- bulk_matrix$V1; bulk_matrix$V1 <- NULL
+sample_names <- colnames(bulk_matrix)
 bulk_matrix <- t(bulk_matrix)
-rm(i, sample_id, bulk_tmp_file, bulk_tmp); gc()
+colnames(bulk_matrix) <- genes
+
 
 # Get single cell counts matrix
-# Note: local_data_path is loaded from config.R
-sce <- readRDS(paste(local_data_path, "deconvolution_input", "labeled_cell_state_profile.rds", sep = "/"))
+sce <- readRDS(paste(local_data_path, "deconvolution_input",
+                     "labeled_cell_state_profile.rds", sep = "/"))
 rownames(sce) <- rowData(sce)$ID
 colnames(sce) <- sce$unique_barcode
 single_cell_matrix <- t(as.matrix(assay(sce)))
@@ -74,7 +64,7 @@ saveRDS(bp.res, file = object_file)
 # Format text version of proportion estimates
 theta <- as.data.frame(t(theta))
 theta <- cbind(rownames(theta), theta)
-colnames(theta) <- c("cell_type", samples)
+colnames(theta) <- c("cell_type", sample_names)
 
 # Save proportion estimates
 text_file <- paste(local_data_path, "deconvolution_output",

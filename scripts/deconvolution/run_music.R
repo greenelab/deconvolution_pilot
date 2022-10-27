@@ -15,6 +15,7 @@ local_data_path <- params$local_data_path
 samples <- params$samples
 
 # Load single cell data into ExpressionSet object
+# Note: local_data_path is loaded from config.R
 sce <- readRDS(paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/"))
 rownames(sce) <- rowData(sce)$ID
 sce$SubjectName <- paste(sce$Pool, sce$Barcode, sep = "-")
@@ -25,22 +26,12 @@ pheno <- AnnotatedDataFrame(data = phenos, varMetadata = pheno_metadata)
 single_cell <- ExpressionSet(as.matrix(assay(sce)), phenoData = pheno)
 
 # Load bulk data into ExpressionSet object
-# Note: data_path is loaded from config.R
-bulk_matrix <- matrix()
-for (i in 1:length(samples)) {
-  sample_id <- samples[i]
-  bulk_tmp_file <- paste(data_path, "bulk_tumors", sample_id, bulk_type,
-                         "STAR/ReadsPerGene.out.tab", sep = "/")
-  bulk_tmp <- fread(bulk_tmp_file)
-  bulk_tmp <- bulk_tmp[grep("ENSG", bulk_tmp$V1), ]
-  setnames(bulk_tmp, "V2", sample_id)
-  if (i == 1) {
-    bulk_matrix <- as.matrix(bulk_tmp[, 2])
-    rownames(bulk_matrix) <- bulk_tmp$V1
-  } else {
-    bulk_matrix <- cbind(bulk_matrix, as.matrix(bulk_tmp[, 2]))
-  }
-}
+bulk_matrix <- fread(paste(local_data_path, "/deconvolution_input/",
+                           "bulk_data_", bulk_type, ".tsv", sep = ""))
+genes <- bulk_matrix$V1; bulk_matrix$V1 <- NULL
+sample_names <- colnames(bulk_matrix)
+bulk_matrix <- as.matrix(bulk_matrix)
+rownames(bulk_matrix) <- genes
 bulk <- ExpressionSet(bulk_matrix)
 
 # Run music
@@ -58,11 +49,11 @@ saveRDS(mus, file = object_file)
 # Format text versions of proportion estimates
 nnls <- t(mus$Est.prop.allgene)
 nnls <- cbind(rownames(nnls), nnls)
-colnames(nnls) <- c("cell_type", samples)
+colnames(nnls) <- c("cell_type", sample_names)
 
 music <- t(mus$Est.prop.weighted)
 music <- cbind(rownames(music), music)
-colnames(music) <- c("cell_type", samples)
+colnames(music) <- c("cell_type", sample_names)
 
 # Save text versions of proportion estimates
 text_file <- paste(local_data_path, "deconvolution_output",
