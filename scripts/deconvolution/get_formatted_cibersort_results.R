@@ -1,5 +1,5 @@
-# Since cibersortx isn"t run within a script, it needs a separate script to
-# rename and format to match the other methods" results.
+# Since cibersortx isn't run within a script, it needs a separate script to
+# rename and format to match the other methods' results.
 suppressPackageStartupMessages({
   library(data.table)
   library(dplyr)

@@ -15,8 +15,7 @@
 BULK_TYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA', 'realistic', 'even', 'weighted', 'sparse']
 TRUEBULKTYPES = ['chunk_ribo', 'dissociated_ribo', 'dissociated_polyA']
 PSEUDOBULKTYPES = ['realistic', 'even', 'weighted', 'sparse']
-#METHODS = [ 'music', 'bisque', 'bayesprism', 'epic', 'quantiseq', 'mcpcounter', 'xcell', 'consensus_tme', 'abis', 'timer', 'cibersortx', 'immucellai'] # etc.
-METHODS = [ 'cibersortx' ]
+METHODS = [ 'music', 'bisque', 'bayesprism', 'epic', 'quantiseq', 'mcpcounter', 'xcell', 'consensus_tme', 'abis', 'timer', 'cibersortx', 'immucellai'] # etc.
 SAMPLES = ['2251', '2267', '2283', '2293', '2380', '2428', '2467', '2497']
 THREADS = 6
 
@@ -191,8 +190,6 @@ rule mutate_cibersortx:
 rule make_bulk_data_matrix:
 	output:
 		dir_inputs + "bulk_data_{truebulktype}.tsv"
-	priority:
-		10000
 	script:
 		"get_bulk_matrix.R"
 
@@ -205,8 +202,6 @@ rule make_tpm_bulk_data_matrix:
 		  ],
 	output:
 		dir_inputs + "normalized_data_{truebulktype}.tsv"
-	priority:
-		9000
 	script:
 		"get_normalized_bulk_matrix.R"
 

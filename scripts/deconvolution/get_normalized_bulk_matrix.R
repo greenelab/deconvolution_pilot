@@ -31,17 +31,17 @@ for (i in 1:length(samples)) {
   setnames(bulk_tmp, "Name", "Transcript")
   bulk_tmp <- right_join(tx2_gene, bulk_tmp)
   bulk_tmp <- bulk_tmp %>% group_by(Gene) %>%
-    summarize(newTPM=sum(TPM))
+    summarize(geneTPM=sum(TPM))
   
   # Switch from Ensembl ID to gene names
   bulk_tmp$Gene <- gsub("\\..*", "", bulk_tmp$Gene)
   bulk_tmp <- inner_join(gene2_symbol, bulk_tmp)
   
   if (i == 1) {
-    bulk_matrix <- as.matrix(bulk_tmp$newTPM)
+    bulk_matrix <- as.matrix(bulk_tmp$geneTPM)
     rownames(bulk_matrix) <- bulk_tmp$Symbol
   } else {
-    bulk_matrix <- cbind(bulk_matrix, as.matrix(bulk_tmp$newTPM))
+    bulk_matrix <- cbind(bulk_matrix, as.matrix(bulk_tmp$geneTPM))
   }
 }
 colnames(bulk_matrix) <- samples
