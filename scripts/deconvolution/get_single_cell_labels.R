@@ -22,24 +22,12 @@ samples <- params$samples
 # Load single cell data
 sce <- readRDS(paste(local_data_path, 
                      "sce_objects/pooled_clustered_50.rds", sep = "/"))
+sce$unique_barcode <- paste(sce$Pool, sce$Barcode, sep = "-")
 
 # Load celltypist results
 ct <- fread(paste(local_data_path,
                   "celltypist_output/pooled_predicted_labels.csv", sep = "/"))
 
-# Load in cell labels from genetic demultiplexing
-labels_dec <- fread(paste(data_path,"pooled_tumors/12162021/vireo/donor_ids.tsv", sep = "/"))
-labels_dec$unique_barcode <- paste("12162021", labels_dec$cell, sep="-")
-labels_jan <- fread(paste(data_path,"pooled_tumors/01132022/vireo/donor_ids.tsv", sep = "/"))
-labels_jan$unique_barcode <- paste("01132022", labels_jan$cell, sep="-")
-labels <- rbind(labels_dec, labels_jan)
-
-# Remove doublets and unassigned cells
-sce$unique_barcode <- paste(sce$Pool, sce$Barcode, sep = "-")
-labels <- labels[labels$unique_barcode %in% sce$unique_barcode, ]
-sce$donor_id <- labels$donor_id
-sce <- sce[, sce$donor_id %in% c("donor0", "donor1", "donor2", "donor3")]
-ct <- ct[ct$V1 %in% sce$unique_barcode, ]
 
 # Consolidate groups for easier deconvolution
 label_table <- fread(paste(local_data_path,
@@ -62,16 +50,62 @@ ct[ct$clusters==11 & ct$Simplified=="Plasma cells",]$keep <- TRUE
 sce$cellType <- ct$Simplified
 sce <- sce[, ct$keep]
 
+## Genetic demultiplexing
+
+# Load in cell labels from genetic demultiplexing
+labels_dec <- fread(paste(data_path,"pooled_tumors/12162021/vireo/donor_ids.tsv", sep = "/"))
+labels_dec$unique_barcode <- paste("12162021", labels_dec$cell, sep="-")
+labels_jan <- fread(paste(data_path,"pooled_tumors/01132022/vireo/donor_ids.tsv", sep = "/"))
+labels_jan$unique_barcode <- paste("01132022", labels_jan$cell, sep="-")
+labels <- rbind(labels_dec, labels_jan)
+
+# Remove doublets and unassigned cells
+sce_genetic <- sce
+labels <- labels[labels$unique_barcode %in% sce$unique_barcode, ]
+sce_genetic$donor_id <- labels$donor_id
+sce_genetic <- sce_genetic[, sce_genetic$donor_id %in% c("donor0", "donor1", "donor2", "donor3")]
+
 # Save object
 outfile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/")
-saveRDS(sce, file = outfile)
+saveRDS(sce_genetic, file = outfile)
 
-# Save text version of object for scanpy
-rownames(sce) <- rowData(sce)$ID
-counts <- as.matrix(assay(sce))
-colnames(counts) <- sce$unique_barcode
-textfile <- paste(local_data_path, "deconvolution_input", "single_cell_matrix.tsv", sep = "/")
-write.table(counts, textfile, sep = "\t", quote = F)
+## Hash demultiplexing
 
-labelfile <- paste(local_data_path, "deconvolution_input", "cell_labels.tsv", sep = "/")
-write(sce$cellType, labelfile, sep = "\n")
+# Load hashing demultiplexing assignment info to get barcodes to keep
+dec_hashing <- fread(paste(data_path, "pooled_tumors", "12162021",
+                       "Cellranger/outs/multi/multiplexing_analysis",
+                       "assignment_confidence_table.csv", sep = "/"))
+dec_hashing$unique_barcode <- paste("12162021", dec_hashing$Barcodes, sep = "-")
+dec_assigned <- subset(dec_hashing, dec_hashing$Assignment=="anti-human_Hashtag1" |
+                         dec_hashing$Assignment=="anti-human_Hashtag2" |
+                         dec_hashing$Assignment=="anti-human_Hashtag3" |
+                         dec_hashing$Assignment=="anti-human_Hashtag4")$unique_barcode
+
+jan_hashing <- fread(paste(data_path, "pooled_tumors", "01132022",
+                        "Cellranger/outs/multi/multiplexing_analysis",
+                        "assignment_confidence_table.csv", sep = "/"))
+jan_hashing$unique_barcode <- paste("01132022", jan_hashing$Barcodes, sep = "-")
+jan_assigned <- subset(jan_hashing, jan_hashing$Assignment=="anti-human_Hashtag1" |
+                         jan_hashing$Assignment=="anti-human_Hashtag2" |
+                         jan_hashing$Assignment=="anti-human_Hashtag3" |
+                         jan_hashing$Assignment=="anti-human_Hashtag4")$unique_barcode
+
+assigned <- c(dec_assigned, jan_assigned)
+
+# Remove doublets and unassigned cells
+sce_hash <- sce
+sce_hash <- sce_hash[, sce$unique_barcode %in% assigned]
+
+# Save object
+outfile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile_default.rds", sep = "/")
+saveRDS(sce_hash, file = outfile)
+
+# Save text version of object for scanpy (leaving in for if I add more methods)
+#rownames(sce) <- rowData(sce)$ID
+#counts <- as.matrix(assay(sce))
+#colnames(counts) <- sce$unique_barcode
+#textfile <- paste(local_data_path, "deconvolution_input", "single_cell_matrix.tsv", sep = "/")
+#write.table(counts, textfile, sep = "\t", quote = F)
+
+#labelfile <- paste(local_data_path, "deconvolution_input", "cell_labels.tsv", sep = "/")
+#write(sce$cellType, labelfile, sep = "\n")
