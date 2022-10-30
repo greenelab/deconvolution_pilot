@@ -30,7 +30,8 @@ original <- subset(melted_results, !melted_results$bulk_type %in% demultiplexed_
 
 # Check variance
 melted_results$bulk_type <- gsub("_demultiplex_default", "", melted_results$bulk_type)
-variance <- melted_results %>% group_by(method, cell_type, variable, bulk_type) %>% summarize(variance = var(proportion))
+variance <- melted_results %>% group_by(method, cell_type, variable, bulk_type) %>%
+  summarize(variance = var(proportion))
 
 plotfile <- paste(plot_path, "/deconvolution_plots/demultiplexing_variance_by_method.png", sep = "")
 png(plotfile)
@@ -50,11 +51,13 @@ setnames(original, "proportion", "original_proportion")
 deconvolution <- full_join(demultiplexed, original)
 
 # Check correlations
-corrs <- deconvolution %>% group_by(method, bulk_type) %>% summarise(cor = cor(demultiplexed_proportion, original_proportion))
+corrs <- deconvolution %>% group_by(method, bulk_type) %>% 
+  summarise(cor = cor(demultiplexed_proportion, original_proportion))
 
 plotfile <- paste(plot_path, "/deconvolution_plots/demultiplexing_correlations.png", sep = "")
 png(plotfile)
-ggplot(corrs, mapping = aes(x=bulk_type, y=cor, group=method, color=method)) + geom_point() + geom_line()
+ggplot(corrs, mapping = aes(x=bulk_type, y=cor, group=method, color=method)) + geom_point() +
+  geom_line() + xlab("Bulk type") + ylab("Correlation value")
 dev.off()
 
 # Check proportion differences
@@ -62,10 +65,12 @@ deconvolution$diff <- deconvolution$demultiplexed_proportion - deconvolution$ori
 
 plotfile <- paste(plot_path, "/deconvolution_plots/demultiplexing_accuracy_by_method.png", sep = "")
 png(plotfile)
-ggplot(deconvolution, mapping = aes(x=method, y=diff, fill = bulk_type)) + geom_boxplot()
+ggplot(deconvolution, mapping = aes(x=method, y=diff, fill = bulk_type)) + geom_boxplot() +
+  xlab("Method") + ylab("(Demultiplexed proportion - original proportion)")
 dev.off()
 
 plotfile <- paste(plot_path, "/deconvolution_plots/demultiplexing_accuracy_by_bulk_type.png", sep = "")
 png(plotfile)
-ggplot(deconvolution, mapping = aes(x=bulk_type, y=diff, fill = method)) + geom_boxplot()
+ggplot(deconvolution, mapping = aes(x=bulk_type, y=diff, fill = method)) + geom_boxplot() +
+  xlab("Bulk type") + ylab("(Demultiplexed proportion - original proportion)")
 dev.off()
