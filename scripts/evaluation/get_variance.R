@@ -27,8 +27,8 @@ scores <- c("consensus_tme", "immucellai", "mcpcounter", "timer", "xcell")
 
 # Cell types of interest
 cell_types <- c("NK cells", "T cells", "B cells", "Endothelial cells",
-                "Macrophages", "Mast cells", "Plasma cells",
-                "Fibroblasts", "Monocytes", "pDC", "DC")
+                "Macrophages", "Mast cells", "Plasma cells", "pDC",
+                "Fibroblasts", "Monocytes", "Epithelial cells", "DC")
 
 # Load all deconvolution results into a single dataframe
 melted_results <- load_melted_results()
@@ -38,7 +38,7 @@ melted_results <- subset(melted_results, melted_results$method %in% proportions)
 melted_results <- rename_cell_types(melted_results)
 
 # For each method x cell type x sample combination, calculate variance across bulk types
-results <- melted_results %>% group_by(method, cell_type, variable) %>% summarize(variance = var(value))
+results <- melted_results %>% group_by(method, cell_type, variable) %>% summarize(variance = var(proportion))
 results <- subset(results, results$cell_type %in% cell_types)
 
 # Compare variance across methods overall
