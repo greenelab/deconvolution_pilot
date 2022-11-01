@@ -52,7 +52,7 @@ deconvolution <- full_join(demultiplexed, original)
 
 # Check correlations
 corrs <- deconvolution %>% group_by(method, bulk_type) %>% 
-  summarise(cor = cor(demultiplexed_proportion, original_proportion))
+  summarize(cor = cor(demultiplexed_proportion, original_proportion))
 
 plotfile <- paste(plot_path, "/deconvolution_plots/demultiplexing_correlations.png", sep = "")
 png(plotfile)

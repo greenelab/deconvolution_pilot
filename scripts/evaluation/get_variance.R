@@ -43,17 +43,17 @@ results <- subset(results, results$cell_type %in% cell_types)
 
 # Compare variance across methods overall
 plotfile <- paste(plot_path, "/deconvolution_plots/variance_summary.png", sep = "")
-png(plotfile)
+png(plotfile, width = 1200)
 ggplot(results, mapping = aes(x = method, y = variance)) + geom_boxplot()
 dev.off()
 
 # Compare variance across methods, stratified by cell type and vice versa
 plotfile <- paste(plot_path, "/deconvolution_plots/variance_by_method.png", sep = "")
-png(plotfile)
+png(plotfile, width = 1200)
 ggplot(results, mapping = aes(x = method, y = log(variance), fill = cell_type)) + geom_boxplot()
 dev.off()
 
 plotfile <- paste(plot_path, "/deconvolution_plots/variance_by_cell_type.png", sep = "")
-png(plotfile)
+png(plotfile, width = 1200)
 ggplot(results, mapping = aes(x = cell_type, y = log(variance), fill = method)) + geom_boxplot()
 dev.off()
