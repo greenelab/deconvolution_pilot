@@ -44,7 +44,8 @@ for (i in 1:length(samples)) {
     bulk_matrix <- cbind(bulk_matrix, as.matrix(bulk_tmp$geneTPM))
   }
 }
-colnames(bulk_matrix) <- samples
+bulk_matrix <- cbind(rownames(bulk_matrix), bulk_matrix)
+colnames(bulk_matrix) <- c("Gene", samples)
 
 outfile <- paste(local_data_path, "/deconvolution_input/normalized_data_", bulk_type, ".tsv", sep = "")
-write.table(bulk_matrix, outfile, quote=F, sep="\t")
+write.table(bulk_matrix, outfile, row.names = F, quote=F, sep="\t")

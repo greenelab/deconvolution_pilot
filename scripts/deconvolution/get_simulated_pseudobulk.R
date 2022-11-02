@@ -124,14 +124,21 @@ rownames(sim_fractions) <- colnames(sim_se)
 
 # Write raw count and cpm normalized data to files
 make_files <- function(data, fractions, sim_type) {
-  datafile <- paste(local_data_path, "/deconvolution_input/bulk_data_", sim_type, ".tsv", sep = "")
-  write.table(data, datafile, quote = F, sep = "\t")
-  
+  sample_names <- colnames(data)
   cpm_data <- data*1000000/colSums(data)[col(data)]
   rownames(cpm_data) <- rowData(sce)$Symbol
   
+  data <- cbind(rownames(data), data)
+  colnames(data) <- c("Gene", sample_names)
+  
+  datafile <- paste(local_data_path, "/deconvolution_input/bulk_data_", sim_type, ".tsv", sep = "")
+  write.table(data, datafile, row.names = F, quote = F, sep = "\t")
+  
+  cpm_data <- cbind(rownames(cpm_data), cpm_data)
+  colnames(cpm_data) <- c("Gene", sample_names)
+  
   normfile <- paste(local_data_path, "/deconvolution_input/normalized_data_", sim_type, ".tsv", sep = "")
-  write.table(cpm_data, normfile, quote = F, sep = "\t")
+  write.table(cpm_data, normfile, row.names = F, quote = F, sep = "\t")
   
   fractionfile <- paste(local_data_path, "/deconvolution_input/cell_type_fractions_", sim_type, ".tsv", sep = "")
   write.table(fractions, fractionfile, quote = F, sep = "\t")

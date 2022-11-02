@@ -48,7 +48,7 @@ melted_results[is.na(melted_results$true_proportion),]$true_proportion <- 0
 # Plot correlations
 plotfile <- paste(plot_path, "/deconvolution_plots/pseudobulk_correlations.png", sep = "")
 png(plotfile, width = 700)
-coors_field <- melted_results %>% group_by(method, bulk_type) %>% summarise(cor = cor(proportion, true_proportion))
+coors_field <- melted_results %>% group_by(method, bulk_type) %>% summarize(cor = cor(proportion, true_proportion))
 ggplot(coors_field, mapping = aes(x=bulk_type, y=cor, group=method, color=method)) + geom_point() + geom_line()
 dev.off()
 
@@ -58,13 +58,13 @@ melted_results$true_proportion <- NULL
 
 # Compare accuracy across methods, stratified by cell type and vice versa
 plotfile <- paste(plot_path, "/deconvolution_plots/pseudobulk_accuracy_by_cell_type.png", sep = "")
-png(plotfile, width = 700)
+png(plotfile, width = 1200)
 ggplot(melted_results, aes(x = cell_type, y = proportion, fill = method)) + geom_boxplot() +
   ylab("Estimated proportion - true proportion") + xlab("Cell type")
 dev.off()
 
 plotfile <- paste(plot_path, "/deconvolution_plots/pseudobulk_accuracy_by_method.png", sep = "")
-png(plotfile, width = 700)
+png(plotfile, width = 1200)
 ggplot(melted_results, aes(x = method, y = proportion, fill = cell_type)) + geom_boxplot() +
   ylab("Estimated proportion - true proportion") + xlab("Cell type")
 dev.off()

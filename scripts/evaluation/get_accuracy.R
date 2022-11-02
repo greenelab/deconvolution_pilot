@@ -71,13 +71,13 @@ remelt$variable <- gsub("proportion.", "", remelt$variable)
 
 # Compare accuracy across methods, stratified by cell type and vice versa
 plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_by_cell_type.png", sep = "")
-png(plotfile)
+png(plotfile, width = 1200)
 ggplot(remelt, aes(x = cell_type, y = value, fill = variable)) + geom_boxplot() +
 	ylab("Estimated proportion - single cell proportion") + xlab("Cell type")
 dev.off()
 
 plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_by_method.png", sep = "")
-png(plotfile)
+png(plotfile, width = 1200)
 ggplot(remelt, aes(x = variable, y = value, fill = cell_type)) + geom_boxplot() +
 	ylab("Estimated proportion - single cell proportion") + xlab("Cell type")
 dev.off()
@@ -94,7 +94,7 @@ rownames(chunk_ribo) <- chunk_ribo$cell_type; chunk_ribo$cell_type <- NULL
 setnames(chunk_ribo, c("abis", "bayesprism", "bisque", "cibersortx", "epic", "music", "nnls", "quantiseq"))
 
 plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_heatmap_chunk_ribo.png", sep = "")
-png(plotfile)
+png(plotfile, width = 1200)
 pheatmap::pheatmap(chunk_ribo, cluster_rows = FALSE, cluster_cols = FALSE,
 		   display_numbers = TRUE, fontsize = 18, legend = FALSE,
                    breaks = ppoints(100) * 1.2 - 0.6)
@@ -110,7 +110,7 @@ rownames(dissociated_ribo) <- dissociated_ribo$cell_type; dissociated_ribo$cell_
 setnames(dissociated_ribo, c("abis", "bayesprism", "bisque", "cibersortx", "epic", "music", "nnls", "quantiseq"))
 
 plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_heatmap_dissociated_ribo.png", sep = "")
-png(plotfile)
+png(plotfile, width = 1200)
 pheatmap::pheatmap(dissociated_ribo, cluster_rows = FALSE, cluster_cols = FALSE,
 		   display_numbers = TRUE, fontsize = 18, legend = FALSE,
                    breaks = ppoints(100) * 1.2 - 0.6)
@@ -126,7 +126,7 @@ rownames(dissociated_polyA) <- dissociated_polyA$cell_type; dissociated_polyA$ce
 setnames(dissociated_polyA, c("abis", "bayesprism", "bisque", "cibersortx", "epic", "music", "nnls", "quantiseq"))
 
 plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_heatmap_dissociated_polyA.png", sep = "")
-png(plotfile)
+png(plotfile, width = 1200)
 pheatmap::pheatmap(dissociated_polyA, cluster_rows = FALSE, cluster_cols = FALSE,
 		   display_numbers = TRUE, fontsize = 18, legend = FALSE,
                    breaks = ppoints(100) * 1.2 - 0.6)

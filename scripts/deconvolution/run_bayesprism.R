@@ -9,6 +9,7 @@ suppressPackageStartupMessages({
 })
 
 bulk_type <- snakemake@wildcards[['bulk_type']]
+demultiplex_setting <- snakemake@wildcards[["demultiplex_setting"]]
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
@@ -17,16 +18,24 @@ samples <- params$samples
 # Get bulk counts matrix
 # Note: local_data_path is loaded from config.R
 bulk_matrix <- fread(paste(local_data_path, "/deconvolution_input/",
-                           "bulk_data_", bulk_type, ".tsv", sep = ""))
-genes <- bulk_matrix$V1; bulk_matrix$V1 <- NULL
+                           "bulk_data_", bulk_type, ".tsv", sep = ""),
+                     header = TRUE)
+genes <- bulk_matrix$Gene; bulk_matrix$Gene <- NULL
 sample_names <- colnames(bulk_matrix)
 bulk_matrix <- t(bulk_matrix)
 colnames(bulk_matrix) <- genes
 
+# Get appropriate single cell info and associated output directory
+if (is.null(demultiplex_setting)) {
+  scefile <- paste(local_data_path, "deconvolution_input", "labeled_cell_state_profile.rds", sep = "/")
+  outdir <- paste(local_data_path, "deconvolution_output", bulk_type, sep = "/")
+} else {
+  scefile <- paste(local_data_path, "/deconvolution_input/", "labeled_cell_state_profile_", demultiplex_setting, ".rds", sep = "")
+  outdir <- paste(local_data_path, "/deconvolution_output/", bulk_type, "_demultiplex_default", sep = "")
+}
 
 # Get single cell counts matrix
-sce <- readRDS(paste(local_data_path, "deconvolution_input",
-                     "labeled_cell_state_profile.rds", sep = "/"))
+sce <- readRDS(scefile)
 rownames(sce) <- rowData(sce)$ID
 colnames(sce) <- sce$unique_barcode
 single_cell_matrix <- t(as.matrix(assay(sce)))
@@ -57,8 +66,7 @@ theta <- get.fraction(bp = bp.res,
                       state.or.type = "type")
 
 # Save BayesPrism object for later perusal
-object_file <- paste(local_data_path, "deconvolution_output",
-                     bulk_type, "bayesprism_results_full.rds", sep = "/")
+object_file <- paste(outdir, "bayesprism_results_full.rds", sep = "/")
 saveRDS(bp.res, file = object_file)
 
 # Format text version of proportion estimates
@@ -67,6 +75,5 @@ theta <- cbind(rownames(theta), theta)
 colnames(theta) <- c("cell_type", sample_names)
 
 # Save proportion estimates
-text_file <- paste(local_data_path, "deconvolution_output",
-                   bulk_type, "bayesprism_results.tsv", sep = "/")
+text_file <- paste(outdir, "bayesprism_results.tsv", sep = "/")
 write.table(theta, file = text_file, sep = "\t", quote = F, row.names = F)

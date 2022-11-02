@@ -77,7 +77,7 @@ sce$CT_results <- celltypist$majority_voting
 
 # Plot all assignments
 png(paste("../../plots/", sample_type, "/", sample_id,
-           "_cellassign_full.png", sep = ""), width = 700)
+           "_celltypist_full.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "CT_results") + ggtitle(sample_id)
 dev.off()
 
@@ -91,6 +91,6 @@ sce$CT_simplified <- celltypist$Simplified
 
 # Plot simplified assignments
 png(paste("../../plots/", sample_type, "/", sample_id,
-           "_cellassign_simplified.png", sep = ""), width = 700)
+           "_celltypist_simplified.png", sep = ""), width = 700)
 plotUMAP(sce, colour_by = "CT_simplified") + ggtitle(sample_id)
 dev.off()

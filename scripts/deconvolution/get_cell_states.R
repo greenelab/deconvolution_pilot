@@ -13,13 +13,18 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
+demultiplex_setting <- snakemake@wildcards[["demultiplex_setting"]]
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
 samples <- params$samples
 
 # Load single cell data
-infile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/")
+if (is.null(demultiplex_setting)){
+  infile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/")
+} else{
+  infile <- paste(local_data_path, "/deconvolution_input/", "labeled_single_cell_profile_", demultiplex_setting, ".rds", sep = "")
+}
 sce <- readRDS(infile)
 sce$unique_barcode <- paste(sce$Pool, sce$Barcode, sep = "-")
 
@@ -50,8 +55,12 @@ labels <- labels[labels$unique_barcode %in% sce$unique_barcode, ]
 sce$donor_id <- labels$donor_id
 
 # Switch epithelial cell state to donor info
-sce$cellState <- ifelse(sce$cellType=="Epithelial cells", sce$donor_id, sce$cellState)
+sce$cellState <- ifelse(sce$cellType == "Epithelial cells", sce$donor_id, sce$cellState)
 
 # Save object
-outfile <- paste(local_data_path, "deconvolution_input", "labeled_cell_state_profile.rds", sep = "/")
+if (is.null(demultiplex_setting)){
+  outfile <- paste(local_data_path, "deconvolution_input", "labeled_cell_state_profile.rds", sep = "/")
+} else {
+  outfile <- paste(local_data_path, "/deconvolution_input/", "labeled_cell_state_profile_", demultiplex_setting, ".rds", sep = "")
+}
 saveRDS(sce, outfile)

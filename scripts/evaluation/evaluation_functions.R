@@ -62,11 +62,14 @@ load_pseudobulk_fractions <- function(pseudobulk_types){
 
 # Load all deconvolution results into a single dataframe, with one
 # row for each combination of cell type x method x bulk type x sample
-load_melted_results <- function(){
+load_melted_results <- function(demultiplex_default = FALSE){
     # Get the file locations of all deconvolution results
     output <- paste(local_data_path, "deconvolution_output", sep = "/")
     files <- list.files(output, full.names = T, recursive = T)
     files <- grep(".tsv", files, value = TRUE)
+    if (!demultiplex_default) {
+      files <- files[-grep("demultiplex_default", files)]
+    }
 
     melted_results <- data.frame()
     for(i in 1:length(files)){
@@ -75,7 +78,7 @@ load_melted_results <- function(){
         bulk_type <- sapply(method, "[[", length(method[[1]])-1)
         method <- sapply(method, "[[", length(method[[1]]))
         method <- gsub("_results.tsv", "",  method)
-        results_tmp <- fread(resultfile,header=T)
+        results_tmp <- fread(resultfile, header=T)
         
         results <- melt(results_tmp,id.vars = "cell_type")
         results$bulk_type <- bulk_type

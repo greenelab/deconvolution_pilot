@@ -18,7 +18,7 @@ samples <- params$samples
 # Load salmon results with TPM values
 bulkfile <- paste(local_data_path, "/deconvolution_input/normalized_data_", bulk_type, ".tsv", sep = "")
 bulk_matrix <- fread(bulkfile)
-genes <- bulk_matrix$V1; bulk_matrix$V1 <- NULL
+genes <- bulk_matrix$Gene; bulk_matrix$Gene <- NULL
 bulk_matrix <- as.matrix(bulk_matrix)
 rownames(bulk_matrix) <- genes
 
