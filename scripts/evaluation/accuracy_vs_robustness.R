@@ -73,7 +73,7 @@ coors <- melted_pseudo_results %>% group_by(method) %>% summarize(cor = cor(prop
 # Get average sum of least squares
 melted_pseudo_results$prop_diff <- melted_pseudo_results$proportion - melted_pseudo_results$true_proportion
 melted_pseudo_results$prop_diff_sq <- melted_pseudo_results$prop_diff ^ 2
-sum_sqs <- melted_pseudo_results %>% group_by(method) %>% summarize(sse = sum(prop_diff_sq))
+sum_sqs <- melted_pseudo_results %>% group_by(method) %>% summarize(rmse = sqrt(mean(prop_diff_sq)))
 
 # Load real data proportions
 melted_sc <- load_melted_sc()
@@ -86,10 +86,10 @@ real_coors <- melted_real_results %>% group_by(method) %>% summarize(real_cor = 
 # Get average sum of least squares
 melted_real_results$prop_diff <- melted_real_results$proportion - melted_real_results$proportion.sc
 melted_real_results$prop_diff_sq <- melted_real_results$prop_diff ^ 2
-real_sum_sqs <- melted_real_results %>% group_by(method) %>% summarize(real_sse = sum(prop_diff_sq))
+real_sum_sqs <- melted_real_results %>% group_by(method) %>% summarize(real_rmse = sqrt(mean(prop_diff_sq)))
 
 ## Completeness (if the method gives results for all cell types of interest)
-completeness_real_results <- subset(melted_real_results, melted_real_results$sample ! = "2428")
+completeness_real_results <- subset(melted_real_results, melted_real_results$sample != "2428")
 completeness <- completeness_results %>% group_by(method, bulk_type, sample)%>% summarize(possible_proportions = sum(proportion.sc)) %>%
   group_by(method) %>% summarize(pct_explained = mean(possible_proportions))
 completeness$immune_only <- completeness$method %in% c("quantiseq", "abis")
@@ -99,39 +99,55 @@ completeness$immune_only <- completeness$method %in% c("quantiseq", "abis")
 # Plot using correlations
 total <- full_join(robustness, coors)
 total <- full_join(total, completeness)
+
+plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_vs_robustness_pseudobulk_correlation.png", sep = "")
+png(plotfile, width = 1200)
 ggplot(total, mapping = aes(x = average_var, y = cor, color = method, shape = immune_only)) +
   geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
   geom_label_repel(aes(label = method, size = NULL)) +
   xlab("Robustness (-log(variance) across protocols)") +
   ylab("Accuracy (correlation with pseudobulk fractions)") +
   guides(color = "none", size = "none")
+dev.off()
 
-# Plot using sum of squared errors
+# Plot using RMSE
 total <- full_join(robustness, sum_sqs)
 total <- full_join(total, completeness)
-ggplot(total, mapping = aes(x = average_var, y = sse, color = method, shape = immune_only)) +
+
+plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_vs_robustness_pseudobulk_RMSE.png", sep = "")
+png(plotfile, width = 1200)
+ggplot(total, mapping = aes(x = average_var, y = rmse, color = method, shape = immune_only)) +
   geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
   geom_label_repel(aes(label = method, size = NULL)) +
   xlab("Robustness (-log(variance) across protocols)") +
-  ylab("Accuracy (sum of squared differences from pseudobulk fractions)") +
+  ylab("Accuracy (RMSE compared to pseudobulk fractions)") +
   guides(color = "none", size = "none")
+dev.off()
 
 # Plot using correlations
 total <- full_join(robustness, real_coors)
 total <- full_join(total, completeness)
+
+plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_vs_robustness_real_correlation.png", sep = "")
+png(plotfile, width = 1200)
 ggplot(total, mapping = aes(x = average_var, y = real_cor, color = method, shape = immune_only)) +
   geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
   geom_label_repel(aes(label = method, size = NULL)) +
   xlab("Robustness (-log(variance) across protocols)") +
   ylab("Accuracy (correlation with single cell fractions)") +
   guides(color = "none", size = "none")
+dev.off()
 
-# Plot using sum of squared errors
+# Plot using RMSE
 total <- full_join(robustness, real_sum_sqs)
 total <- full_join(total, completeness)
-ggplot(total, mapping = aes(x = average_var, y = real_sse, color = method, shape = immune_only)) +
+
+plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_vs_robustness_real_RMSE.png", sep = "")
+png(plotfile, width = 1200)
+ggplot(total, mapping = aes(x = average_var, y = real_rmse, color = method, shape = immune_only)) +
   geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
   geom_label_repel(aes(label = method, size = NULL)) +
   xlab("Robustness (-log(variance) across protocols)") +
-  ylab("Accuracy (sum of squared differences from single cell fractions)") +
+  ylab("Accuracy (RMSE compared to single cell fractions)") +
   guides(color = "none", size = "none")
+dev.off()
