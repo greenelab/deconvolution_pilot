@@ -90,8 +90,36 @@ pB <- ggplot(res_df, mapping = aes(x = log2FoldChange,
 #                                "Macrophages" = "red",
                                 "Other" = "#999999"))
 
+# Plot hemoglobin genes
+hemo_genes <- c("HBA1","HBA2","HBB")
+d1 <- plotCounts(dds, gene=hemo_genes[1], intgroup=c("condition","sample"), returnData=TRUE)
+d1$Gene <- hemo_genes[1]
+d2 <- plotCounts(dds, gene=hemo_genes[2], intgroup=c("condition","sample"), returnData=TRUE)
+d2$Gene <- hemo_genes[2]
+d3 <- plotCounts(dds, gene=hemo_genes[3], intgroup=c("condition","sample"), returnData=TRUE)
+d3$Gene <- hemo_genes[3]
+d <- rbind(d1, d2, d3)
 
-pdf("../../figures/figure3.pdf", width = 12, height = 8, family = "sans")
-pA + pB + pC + pD +
+pC <- ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
+    geom_point() + scale_y_log10() + geom_line() +
+    facet_wrap(~Gene)
+
+  
+# Plot adipocyte genes
+selected_adipo_genes <- c("ADIPOQ", "CIDEC", "PLIN1")
+d1 <- plotCounts(dds, gene=selected_adipo_genes[1], intgroup=c("condition","sample"), returnData=TRUE)
+d1$Gene <- selected_adipo_genes[1]
+d2 <- plotCounts(dds, gene=selected_adipo_genes[2], intgroup=c("condition","sample"), returnData=TRUE)
+d2$Gene <- selected_adipo_genes[2]
+d3 <- plotCounts(dds, gene=selected_adipo_genes[3], intgroup=c("condition","sample"), returnData=TRUE)
+d3$Gene <- selected_adipo_genes[3]
+d <- rbind(d1, d2, d3)
+
+pD <- ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
+    geom_point() + scale_y_log10() + geom_line() +
+    facet_wrap(~Gene)
+  
+pdf("../../figures/figure3.pdf", width = 12, height = 16, family = "sans")
+(pA + pB) / pC / pD + 
   plot_annotation(tag_levels = "A")
 dev.off()
