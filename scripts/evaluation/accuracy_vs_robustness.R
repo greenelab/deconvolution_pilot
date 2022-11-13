@@ -9,6 +9,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(dplyr)
   library(yaml)
+  library(ggrepel)
 })
 
 params <- read_yaml("../../config.yml")
@@ -89,7 +90,7 @@ melted_real_results$prop_diff_sq <- melted_real_results$prop_diff ^ 2
 real_sum_sqs <- melted_real_results %>% group_by(method) %>% summarize(real_rmse = sqrt(mean(prop_diff_sq)))
 
 ## Completeness (if the method gives results for all cell types of interest)
-completeness_real_results <- subset(melted_real_results, melted_real_results$sample != "2428")
+completeness_results <- subset(melted_real_results, melted_real_results$sample != "2428")
 completeness <- completeness_results %>% group_by(method, bulk_type, sample)%>% summarize(possible_proportions = sum(proportion.sc)) %>%
   group_by(method) %>% summarize(pct_explained = mean(possible_proportions))
 completeness$immune_only <- completeness$method %in% c("quantiseq", "abis")
