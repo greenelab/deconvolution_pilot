@@ -19,6 +19,8 @@ data_path <- params$data_path
 local_data_path <- params$local_data_path
 samples <- params$samples
 
+source("figure_utils.R")
+
 # Load DESeq2 object
 deseq_path <- paste(local_data_path, "deseq2_output", sep = "/")
 dds <- readRDS(paste(deseq_path, "ribo_vs_polyA_data.rds", sep = "/"))

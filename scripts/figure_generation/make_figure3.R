@@ -12,12 +12,15 @@ suppressPackageStartupMessages({
   library(yaml)
   library(DESeq2)
   library(rtracklayer)
+  library(WebGestaltR)
 })
 
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
 samples <- params$samples
+
+source("figure_utils.R")
 
 # Load DESeq2 object
 deseq_path <- paste(local_data_path, "deseq2_output", sep = "/")
@@ -123,3 +126,31 @@ pdf("../../figures/figure3.pdf", width = 12, height = 16, family = "sans")
 (pA + pB) / pC / pD + 
   plot_annotation(tag_levels = "A")
 dev.off()
+
+
+# Running WebGestaltR takes an annoyingly long time, so I'm going to save the results
+# to a file and read it back in during the plotting/formatting process. 
+
+#WebGestaltR expects a data frame with two columns, gene name and fold change
+res <- results(dds, alpha = 0.5)
+res$gene <- rownames(res); rownames(res) <- NULL
+res <- subset(res, select=c("gene","log2FoldChange"))
+res <- as.data.frame(res)
+nrow(res)
+
+write.table(res, file = "cell_types_all_gsea.rnk", sep = "\t", quote = F, row.names = F, col.names = F)
+
+#C8 <- suppressWarnings(WebGestaltR(enrichMethod = "GSEA",
+#                                   enrichDatabaseFile = "../bulk_de/GSEA_custom_sets/c8.all.v7.5.1.symbols.gmt",
+#                                   enrichDatabaseType = "genesymbol",
+#                                   interestGene = res,
+#                                   interestGeneType = "genesymbol",
+#                                   isOutput = FALSE))
+#saveRDS(C8, file = "cell_types_GSEA_results.rds")
+
+#C8 <- readRDS("cell_types_GSEA_results.rds")
+
+#C8 <- C8[order(C8$normalizedEnrichmentScore, decreasing = TRUE),]
+#head(subset(C8, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")), n=10)
+#tail(subset(C8, select=c("geneSet","normalizedEnrichmentScore","pValue","FDR","size")), n=10)
+

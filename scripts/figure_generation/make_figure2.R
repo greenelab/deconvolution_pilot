@@ -12,12 +12,12 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
-#TODO: make supplemental figure 3
-
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
 samples <- params$samples
+
+source("figure_utils.R")
 
 load_and_filter_datasets <- function(sample_id) {
   # Load the datasets
@@ -25,7 +25,7 @@ load_and_filter_datasets <- function(sample_id) {
                              "Cellranger/outs/multi/multiplexing_analysis",
                              "assignment_confidence_table.csv", sep = "/"))
   genetic <- fread(paste(data_path, "pooled_tumors", sample_id, 
-                         "vireo/donor_ids.tsv", sep = "/"))
+                         "vireo/chunk_ribo/donor_ids.tsv", sep = "/"))
   sce <- readRDS(paste(local_data_path,"/sce_objects/",
                        sample_id, ".rds", sep = ""))
   
@@ -290,6 +290,9 @@ pdf("../../figures/suppfig1.pdf", width = 12, height = 10.6, family = "sans")
 qA + qB + qC + qD + plot_annotation(tag_levels = "A")
 dev.off()
 
+
+
+
 make_cell_type_barchart <- function(ct) {
   ct_all <- table(ct$Simplified)
   ct_all <- as.data.frame(ct_all/sum(ct_all))
@@ -315,8 +318,95 @@ make_cell_type_barchart <- function(ct) {
 
 dec_ct <- load_cell_types("12162021", dec_hashing)
 dec_unassigned <- make_cell_type_barchart(dec_ct)
-r1 <- ggplot(dec_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) + geom_bar(stat = "identity") 
+rA <- ggplot(dec_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) + geom_bar(stat = "identity") 
 
 jan_ct <- load_cell_types("01132022", jan_hashing)
 jan_unassigned <- make_cell_type_barchart(jan_ct)
-r2 <- ggplot(jan_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) + geom_bar(stat = "identity") 
+rB <- ggplot(jan_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) + geom_bar(stat = "identity") 
+
+pdf("../../figures/suppfig2.pdf", width = 12, height = 6, family = "sans")
+rA + rB + plot_annotation(tag_levels = "A")
+dev.off()
+
+
+
+
+get_genotype_heatmaps <- function(sample_id, type1, type2) { 
+  vireo_path <- paste(data_path, "pooled_tumors", sample_id, "vireo", sep = "/")
+  data1 <- fread(paste(vireo_path, type1, "donor_ids.tsv", sep = "/"))
+  data2 <- fread(paste(vireo_path, type2, "donor_ids.tsv", sep = "/"))
+  
+  # Filter vireo to cells in sce object, all others failed miQC filtering
+  sce <- readRDS(paste(local_data_path,"/sce_objects/",
+                       sample_id, ".rds", sep = ""))
+  data1 <- subset(data1, data1$cell %in% sce$Barcode)
+  data2 <- subset(data2, data2$cell %in% sce$Barcode)
+  
+  setnames(data1, "donor_id", type1)
+  setnames(data2, "donor_id", type2)
+  
+  data1 <- subset(data1, select = c("cell", type1))
+  data2 <- subset(data2, select = c("cell", type2))
+  
+  master_list <- full_join(data1, data2)
+  
+  groups <- c(type1, type2)
+  master_list <- subset(master_list, select = groups)
+  grouped_data <- master_list %>% 
+    group_by(across(all_of(groups))) %>%
+    summarize(count = n()) %>% as.data.frame()
+  
+  # Reshape and then melt to replace NAs with 0s
+  confusion <- reshape(data=grouped_data, 
+                       idvar=type1,
+                       v.names="count",
+                       timevar=type2,
+                       direction="wide")
+  colnames(confusion) <- gsub("count.", "", colnames(confusion))
+  confusion[is.na(confusion)] <- 0
+  
+  grouped_data <- melt(confusion)
+
+  # Set assignment labels as factors so I can order them how I want
+  setnames(grouped_data, c("group1", "group2", "cells"))
+  grouped_data$group1 <- factor(grouped_data$group1,
+                                            levels = c("donor0", "donor1",
+                                                       "donor2", "donor3",
+                                                       "doublet", "unassigned"))
+  grouped_data$group2 <- factor(grouped_data$group2,
+                                levels = c("unassigned", "doublet",
+                                           "donor3", "donor2",
+                                           "donor1", "donor0"))
+
+  setnames(grouped_data, c(type1, type2, "cells"))  
+  grouped_data
+}
+
+confusion1 <- get_genotype_heatmaps("12162021", "chunk_ribo", "dissociated_ribo")
+sA <- ggplot(confusion1, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
+  geom_raster() + geom_text(aes(label = cells), size = 8) +
+  #gradient_fill(modified_viridis) +
+  theme(legend.position = "None")
+
+confusion2 <- get_genotype_heatmaps("12162021", "dissociated_ribo", "dissociated_polyA")
+sB <- ggplot(confusion2, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells)) +
+  geom_raster() + geom_text(aes(label = cells), size = 8) +
+  #gradient_fill(modified_viridis) +
+  theme(legend.position = "None")
+
+confusion3 <- get_genotype_heatmaps("01132022", "chunk_ribo", "dissociated_ribo")
+sC <- ggplot(confusion3, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
+  geom_raster() + geom_text(aes(label = cells), size = 8) +
+  #gradient_fill(modified_viridis) +
+  theme(legend.position = "None")
+
+confusion4 <- get_genotype_heatmaps("12162021", "dissociated_ribo", "dissociated_polyA")
+sD <- ggplot(confusion4, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells)) +
+  geom_raster() + geom_text(aes(label = cells), size = 8) +
+  #gradient_fill(modified_viridis) +
+  theme(legend.position = "None")
+
+pdf("../../figures/suppfig3.pdf", width = 12, height = 12, family = "sans")
+sA + sB + sC + sD +
+  plot_annotation(tag_levels = "A")
+dev.off()
