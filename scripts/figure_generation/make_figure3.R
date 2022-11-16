@@ -34,9 +34,12 @@ pcaData <- plotPCA(rld, intgroup = c("condition", "sample"), returnData = TRUE)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 pA <- ggplot(pcaData, aes(PC1, PC2, color = sample, shape = condition)) +
   geom_point(size = 3) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   xlab(paste0("PC1: ", percentVar[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) + 
-  coord_fixed()
+  coord_fixed() +
+  labs(color = "Sample", shape = "Status") + 
+  scale_color_manual(values = colors_samples)
 
 # Get DESeq2 results
 res <- results(dds)
@@ -84,14 +87,12 @@ pB <- ggplot(res_df, mapping = aes(x = log2FoldChange,
                                    y = -log10(padj),
                                    color = group)) +
   geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
   geom_vline(xintercept = c(log2(0.5), log2(2)), linetype = "dashed") +
-  scale_color_manual(name = "Gene Type",
-                     values = c("Adipocytes" = "#7CAE00",
-                                "RBCs" = "#00BFC4",
-                                "Endothelial cells" = "#C77CFF",
-#                                "Macrophages" = "red",
-                                "Other" = "#999999"))
+  scale_color_manual(name = "Gene set", values = colors_genesets, 
+                     limits = c("Adipocytes", "RBCs", "Endothelial cells", "Other")) +
+  xlab("log2 fold change") + ylab("-log10 adjusted p-value")
 
 # Plot hemoglobin genes
 hemo_genes <- c("HBA1","HBA2","HBB")
@@ -105,7 +106,10 @@ d <- rbind(d1, d2, d3)
 
 pC <- ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
     geom_point() + scale_y_log10() + geom_line() +
-    facet_wrap(~Gene)
+    facet_wrap(~Gene) +
+    theme(axis.text.x = element_text(angle=0, hjust = 0.5, vjust = 0.5)) +
+    labs(x = "Status", y = "Read counts", color = "Sample") +
+    scale_color_manual(values = colors_samples)
 
   
 # Plot adipocyte genes
@@ -120,7 +124,10 @@ d <- rbind(d1, d2, d3)
 
 pD <- ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
     geom_point() + scale_y_log10() + geom_line() +
-    facet_wrap(~Gene)
+    facet_wrap(~Gene) +
+    theme(axis.text.x = element_text(angle=0, hjust = 0.5, vjust = 0.5)) +
+  labs(x = "Status", y = "Read counts", color = "Sample") +
+    scale_color_manual(values = colors_samples)
   
 pdf("../../figures/figure3.pdf", width = 12, height = 16, family = "sans")
 (pA + pB) / pC / pD + 

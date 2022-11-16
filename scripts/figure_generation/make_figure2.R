@@ -148,6 +148,10 @@ dec_sce$assignment_0.90 <- as.factor(dec_sce$assignment_0.90)
 sce_matrix <- as.data.frame(reducedDim(dec_sce, type="UMAP"))
 sce_matrix$Assignment <- dec_sce$assignment_0.90
 pA <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+        plot.title = element_text(hjust = 0.5)) +
+  xlab("UMAP 1") + ylab("UMAP 2") +
+  ggtitle("Pool 12162021") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -172,6 +176,10 @@ jan_sce$assignment_0.90 <- as.factor(jan_sce$assignment_0.90)
 sce_matrix <- as.data.frame(reducedDim(jan_sce, type="UMAP"))
 sce_matrix$Assignment <- jan_sce$assignment_0.90
 pB <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+        plot.title = element_text(hjust = 0.5)) +
+  xlab("UMAP 1") + ylab("UMAP 2") +
+  ggtitle("Pool 12162021") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -188,6 +196,8 @@ dec_sce$genetic_assignment <- as.factor(dec_sce$genetic_assignment)
 sce_matrix <- as.data.frame(reducedDim(dec_sce, type="UMAP"))
 sce_matrix$Assignment <- dec_sce$genetic_assignment
 pC <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
+  xlab("UMAP 1") + ylab("UMAP 2") +
   scale_color_manual(name = "Assignment",
                      values = c("donor0" = "#4DAC26",
                                 "donor1" = "#0571B0",
@@ -203,28 +213,36 @@ jan_sce$genetic_assignment <- as.factor(jan_sce$genetic_assignment)
 sce_matrix <- as.data.frame(reducedDim(jan_sce, type="UMAP"))
 sce_matrix$Assignment <- jan_sce$genetic_assignment
 pD <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
+  xlab("UMAP 1") + ylab("UMAP 2") +
   scale_color_manual(name = "Assignment",
-                     values = c("donor0" = "#E66101",
-                                "donor1" = "#CA0020",
-                                "donor2" = "#0571B0",
-                                "donor3" = "#4DAC26",
+                     values = c("donor0" = "#4DAC26",
+                                "donor1" = "#0571B0",
+                                "donor2" = "#CA0020",
+                                "donor3" = "#E66101",
                                 "unassigned" = "#999999"))
 
 
 dec_confusion <- make_overlap_matrix(dec_hashing, dec_genetic, "0.90")
 pE <- ggplot(dec_confusion, aes(x=hash_assignment, y=genetic_assignment, fill=cells)) +
-  geom_raster() + geom_text(aes(label = cells), size = 8) +
-  #gradient_fill(modified_viridis) +
+  geom_raster() + geom_text(aes(label = cells), size = 6) +
+  heatmap_scale_1d + 
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  xlab("Hash demultiplexing assignment") + ylab("Genetic demultiplexing assignment") + 
   theme(legend.position = "None")
 
 
 jan_confusion <- make_overlap_matrix(jan_hashing, jan_genetic, "0.90")
 pF <- ggplot(jan_confusion, aes(x=hash_assignment, y=genetic_assignment, fill=cells)) +
-  geom_raster() + geom_text(aes(label = cells), size = 8) +
-  #gradient_fill(modified_viridis) +
+  geom_raster() + geom_text(aes(label = cells), size = 6) +
+  heatmap_scale_1d +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  xlab("Hash demultiplexing assignment") + ylab("Genetic demultiplexing assignment") + 
   theme(legend.position = "None")
 
-pdf("../../figures/figure2.pdf", width = 12, height = 16, family = "sans")
+pdf("../../figures/figure2.pdf", width = 16, height = 16, family = "sans")
 pA + pB + pC + pD + pE + pF +
   plot_layout(nrow = 3) +
   plot_annotation(tag_levels = "A")
@@ -249,6 +267,8 @@ colData(jan_sce) <- cbind(colData(jan_sce), "assignment_0.80" = jan_hashing$assi
 sce_matrix <- as.data.frame(reducedDim(dec_sce, type="UMAP"))
 sce_matrix$Assignment <- dec_sce$assignment_0.85
 qA <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
+  xlab("UMAP 1") + ylab("UMAP 2") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -259,6 +279,8 @@ qA <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
 sce_matrix <- as.data.frame(reducedDim(jan_sce, type="UMAP"))
 sce_matrix$Assignment <- jan_sce$assignment_0.85
 qB <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
+  xlab("UMAP 1") + ylab("UMAP 2") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -269,6 +291,8 @@ qB <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
 sce_matrix <- as.data.frame(reducedDim(dec_sce, type="UMAP"))
 sce_matrix$Assignment <- dec_sce$assignment_0.80
 qC <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
+  xlab("UMAP 1") + ylab("UMAP 2") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -279,6 +303,8 @@ qC <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
 sce_matrix <- as.data.frame(reducedDim(jan_sce, type="UMAP"))
 sce_matrix$Assignment <- jan_sce$assignment_0.80
 qD <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
+  xlab("UMAP 1") + ylab("UMAP 2") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -286,7 +312,7 @@ qD <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
                                 "Hashtag4" = "#E66101",
                                 "Unassigned" = "#999999"))
 
-pdf("../../figures/suppfig1.pdf", width = 12, height = 10.6, family = "sans")
+pdf("../../figures/suppfig1.pdf", width = 15, height = 10.6, family = "sans")
 qA + qB + qC + qD + plot_annotation(tag_levels = "A")
 dev.off()
 
@@ -318,11 +344,19 @@ make_cell_type_barchart <- function(ct) {
 
 dec_ct <- load_cell_types("12162021", dec_hashing)
 dec_unassigned <- make_cell_type_barchart(dec_ct)
-rA <- ggplot(dec_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) + geom_bar(stat = "identity") 
+rA <- ggplot(dec_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) +
+  geom_bar(stat = "identity") +
+  ylab("Proportion") + 
+  labs(fill = "Cell type") +
+  theme(axis.title.x = element_blank())
 
 jan_ct <- load_cell_types("01132022", jan_hashing)
 jan_unassigned <- make_cell_type_barchart(jan_ct)
-rB <- ggplot(jan_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) + geom_bar(stat = "identity") 
+rB <- ggplot(jan_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) +
+  geom_bar(stat = "identity") +
+  ylab("Proportion") + 
+  labs(fill = "Cell type") +
+  theme(axis.title.x = element_blank())
 
 pdf("../../figures/suppfig2.pdf", width = 12, height = 6, family = "sans")
 rA + rB + plot_annotation(tag_levels = "A")
@@ -384,27 +418,47 @@ get_genotype_heatmaps <- function(sample_id, type1, type2) {
 
 confusion1 <- get_genotype_heatmaps("12162021", "chunk_ribo", "dissociated_ribo")
 sA <- ggplot(confusion1, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
-  geom_raster() + geom_text(aes(label = cells), size = 8) +
-  #gradient_fill(modified_viridis) +
-  theme(legend.position = "None")
+  geom_raster() + geom_text(aes(label = cells), size = 6) +
+  heatmap_scale_1d + 
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") + 
+  ggtitle("Pool 12162021") +
+  theme(legend.position = "None",
+        plot.title = element_text(hjust = 0.5))
 
 confusion2 <- get_genotype_heatmaps("12162021", "dissociated_ribo", "dissociated_polyA")
 sB <- ggplot(confusion2, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells)) +
-  geom_raster() + geom_text(aes(label = cells), size = 8) +
-  #gradient_fill(modified_viridis) +
-  theme(legend.position = "None")
+  geom_raster() + geom_text(aes(label = cells), size = 6) +
+  heatmap_scale_1d + 
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") + 
+  ggtitle("Pool 12162021") +
+  theme(legend.position = "None",
+        plot.title = element_text(hjust = 0.5))
 
 confusion3 <- get_genotype_heatmaps("01132022", "chunk_ribo", "dissociated_ribo")
 sC <- ggplot(confusion3, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
-  geom_raster() + geom_text(aes(label = cells), size = 8) +
-  #gradient_fill(modified_viridis) +
-  theme(legend.position = "None")
+  geom_raster() + geom_text(aes(label = cells), size = 6) +
+  heatmap_scale_1d + 
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") + 
+  ggtitle("Pool 01132022") +
+  theme(legend.position = "None",
+        plot.title = element_text(hjust = 0.5))
 
-confusion4 <- get_genotype_heatmaps("12162021", "dissociated_ribo", "dissociated_polyA")
+confusion4 <- get_genotype_heatmaps("01132022", "dissociated_ribo", "dissociated_polyA")
 sD <- ggplot(confusion4, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells)) +
-  geom_raster() + geom_text(aes(label = cells), size = 8) +
-  #gradient_fill(modified_viridis) +
-  theme(legend.position = "None")
+  geom_raster() + geom_text(aes(label = cells), size = 6) +
+  heatmap_scale_1d + 
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") + 
+  ggtitle("Pool 01132022") +
+  theme(legend.position = "None",
+        plot.title = element_text(hjust = 0.5))
 
 pdf("../../figures/suppfig3.pdf", width = 12, height = 12, family = "sans")
 sA + sB + sC + sD +

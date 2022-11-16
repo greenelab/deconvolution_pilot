@@ -24,7 +24,7 @@ source("figure_utils.R")
 source("../evaluation/evaluation_functions.R")
 
 # Which methods have values that represent true proportions (i.e. sum to 1)
-proportions <- c("abis", "bayesprism", "bisque", "cibersortx", "epic", "music", "nnls", "quantiseq")
+proportions <- c("bayesprism", "bisque", "cibersortx", "epic", "music", "nnls")
 scores <- c("consensus_tme", "immucellai", "mcpcounter", "timer", "xcell")
 
 # Cell types of interest
@@ -46,8 +46,11 @@ melted_results <- rename_cell_types(melted_results)
 results <- melted_results %>% group_by(method, cell_type, variable) %>% summarize(variance = var(proportion))
 results <- subset(results, results$cell_type %in% cell_types)
 
-pA <- ggplot(results, mapping = aes(x = method, y = log(variance), color = cell_type)) + geom_boxplot()
-
+pA <- ggplot(results) + geom_boxplot(mapping = aes(x = method, y= log(variance), fill = cell_type, color = cell_type)) +
+  geom_boxplot(mapping = aes(x=method, y = log(variance), fill = cell_type), outlier.colour = NA) +
+  xlab("Method") + ylab("log(bulk variance)") +
+  scale_color_manual(name = "Cell type", values = colors_celltypes) +
+  scale_fill_manual(name = "Cell type", values = colors_celltypes)
 
 
 # Split deconvolution results into demultiplex defaults and original
@@ -62,7 +65,12 @@ melted_results$bulk_type <- gsub("_demultiplex_default", "", melted_results$bulk
 variance <- melted_results %>% group_by(method, cell_type, variable, bulk_type) %>%
   summarize(variance = var(proportion))
 
-pB <- ggplot(variance, mapping = aes(x = method, y = log(variance), color = cell_type)) + geom_boxplot()
+pB <- ggplot(variance) + geom_boxplot(mapping = aes(x = method, y= log(variance), fill = cell_type, color = cell_type)) +
+  geom_boxplot(mapping = aes(x=method, y = log(variance), fill = cell_type), outlier.colour = NA) +
+  xlab("Method") + ylab("log(demultiplexing variance)") +
+  scale_color_manual(name = "Cell type", values = colors_celltypes) +
+  scale_fill_manual(name = "Cell type", values = colors_celltypes)
+
 
 # Join original and demultiplex results
 demultiplexed$bulk_type <- gsub("_demultiplex_default", "", demultiplexed$bulk_type)
@@ -73,14 +81,20 @@ deconvolution <- full_join(demultiplexed, original)
 # Check correlations
 corrs <- deconvolution %>% group_by(method, bulk_type) %>% 
   summarize(cor = cor(demultiplexed_proportion, original_proportion))
+corrs$method <- as.factor(corrs$method)
 pC <- ggplot(corrs, mapping = aes(x=bulk_type, y=cor, group=method, color=method)) + geom_point() +
-  geom_line() + xlab("Bulk type") + ylab("Correlation value")
+  geom_line() + xlab("Bulk type") + ylab("Demultiplexing correlation") +
+  scale_color_manual(name = "Method", values = colors_methods,
+                     limits = c("bayesprism", "bisque","cibersortx","music","nnls"))
+
 
 # Check proportion differences
 deconvolution$diff <- deconvolution$demultiplexed_proportion - deconvolution$original_proportion
-pD <- ggplot(deconvolution, mapping = aes(x=method, y=diff, color = bulk_type)) + geom_boxplot() +
-  xlab("Method") + ylab("(Demultiplexed proportion - original proportion)")
-
+pD <- ggplot(deconvolution) + geom_boxplot(mapping = aes(x = method, y= diff, fill = bulk_type, color = bulk_type)) +
+  geom_boxplot(mapping = aes(x=method, y = diff, fill = bulk_type), outlier.colour = NA) +
+  xlab("Method") + ylab("Proportion (demultiplexed - original)") +
+  scale_color_manual(name = "Bulk type", values = colors_bulktypes) +
+  scale_fill_manual(name = "Bulk type", values = colors_bulktypes)
 
 
 
@@ -146,27 +160,30 @@ completeness$immune_only <- completeness$method %in% c("quantiseq", "abis")
 
 # Plot accuracy vs robustness
 total <- full_join(robustness, coors)
-total <- full_join(total, completeness)
-pE <- ggplot(total, mapping = aes(x = average_var, y = cor, color = method, shape = immune_only)) +
-  geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
+#total <- full_join(total, completeness)
+pE <- ggplot(total, mapping = aes(x = average_var, y = cor, color = method)) +
+  geom_point(aes(size = 10)) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   geom_label_repel(aes(label = method, size = NULL)) +
   xlab("Robustness (-log(variance) across protocols)") +
-  ylab("Accuracy (correlation with pseudobulk fractions)") +
-  guides(color = "none", size = "none")
+  ylab("Accuracy (correlation w/ pseudo-bulk)") +
+  guides(color = "none", size = "none") +
+  scale_color_manual(name = "Method", values = colors_methods)
 
 total <- full_join(robustness, real_coors)
-total <- full_join(total, completeness)
-pF <- ggplot(total, mapping = aes(x = average_var, y = real_cor, color = method, shape = immune_only)) +
-  geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
+pF <- ggplot(total, mapping = aes(x = average_var, y = real_cor, color = method)) +
+  geom_point(aes(size = 10)) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   geom_label_repel(aes(label = method, size = NULL)) +
   xlab("Robustness (-log(variance) across protocols)") +
-  ylab("Accuracy (correlation with single cell fractions)") +
-  guides(color = "none", size = "none")
+  ylab("Accuracy (correlation w/ single cell)") +
+  guides(color = "none", size = "none") +
+  scale_color_manual(name = "Method", values = colors_methods)
 
 
 
 
-pdf("../../figures/figure6.pdf", width = 12, height = 14, family = "sans")
+pdf("../../figures/figure6.pdf", width = 16, height = 14, family = "sans")
 pA + pB + pC + pD + pE + pF +
   plot_layout(ncol = 2) +
   plot_annotation(tag_levels = "A")
@@ -179,22 +196,24 @@ dev.off()
 ## Accuracy vs. robustness plots using RMSE
 
 total <- full_join(robustness, sum_sqs)
-total <- full_join(total, completeness)
-qA <- ggplot(total, mapping = aes(x = average_var, y = rmse, color = method, shape = immune_only)) +
-  geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
+qA <- ggplot(total, mapping = aes(x = average_var, y = rmse, color = method)) +
+  geom_point(aes(size = 10)) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   geom_label_repel(aes(label = method, size = NULL)) +
   xlab("Robustness (-log(variance) across protocols)") +
   ylab("Accuracy (RMSE compared to pseudobulk fractions)") +
-  guides(color = "none", size = "none")
+  guides(color = "none", size = "none") +
+  scale_color_manual(name = "Method", values = colors_methods)
 
 total <- full_join(robustness, real_sum_sqs)
-total <- full_join(total, completeness)
-qB <- ggplot(total, mapping = aes(x = average_var, y = real_rmse, color = method, shape = immune_only)) +
-  geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
+qB <- ggplot(total, mapping = aes(x = average_var, y = real_rmse, color = method)) +
+  geom_point(aes(size = 10)) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   geom_label_repel(aes(label = method, size = NULL)) +
   xlab("Robustness (-log(variance) across protocols)") +
   ylab("Accuracy (RMSE compared to single cell fractions)") +
-  guides(color = "none", size = "none")
+  guides(color = "none", size = "none") +
+  scale_color_manual(name = "Method", values = colors_methods)
 
 pdf("../../figures/suppfig6.pdf", width = 12, height = 6, family = "sans")
 qA + qB + plot_annotation(tag_levels = "A")

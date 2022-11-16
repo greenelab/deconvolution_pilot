@@ -33,9 +33,12 @@ pcaData <- plotPCA(rld, intgroup = c("condition", "sample"), returnData = TRUE)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 pA <- ggplot(pcaData, aes(PC1, PC2, color = sample, shape = condition)) +
   geom_point(size = 3) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   xlab(paste0("PC1: ", percentVar[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar[2], "% variance")) + 
-  coord_fixed()
+  labs(color = "Sample", shape = "Library prep") + 
+  coord_fixed()  +
+  scale_color_manual(values = colors_samples)
 
 # Get DESeq2 results
 res <- results(dds)
@@ -75,13 +78,12 @@ pB <- ggplot(res_df, mapping = aes(x = log2FoldChange,
                                    y = -log10(padj),
                                    color = group)) +
   geom_point() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
   geom_vline(xintercept = c(log2(0.5), log2(2)), linetype = "dashed") +
-  scale_color_manual(name = "Gene Type",
-                     values = c("Histones" = "#7CAE00",
-                                "Other polyA(-)" = "#00BFC4",
-                                "MT Genes" = "#C77CFF",
-                                "Other" = "#999999"))
+  scale_color_manual(name = "Gene set", values = colors_genesets,
+                     limits = c("Histones", "Other polyA(-)", "MT Genes", "Other")) +
+  xlab("log2 fold change") + ylab("-log10 adjusted p-value")
 
 # Get sums of all histone genes
 hist_expr <- as.data.frame(colSums(assay(dds[hist_genes,])))
@@ -93,7 +95,12 @@ hist_expr$condition <- gsub(".*_", "", hist_expr$id)
 pC <- ggplot(hist_expr, aes(x=condition, y=counts, group=sample, color=sample)) +
   geom_point() +
   scale_y_log10() +
-  geom_line()
+  geom_line() +
+  theme(axis.text.x = element_text(angle=0, hjust = 0.5, vjust = 0.5),
+        plot.title = element_text(hjust = 0.5)) +
+  labs(x = "Status", y = "Read counts", color = "Sample") +
+  ggtitle("Histone genes") +
+  scale_color_manual(values = colors_samples)
 
 # Get sums of all mitochondrial genes
 mito_expr <- as.data.frame(colSums(assay(dds[mt_genes,])))
@@ -105,9 +112,15 @@ mito_expr$condition <- gsub(".*_", "", mito_expr$id)
 pD <- ggplot(mito_expr, aes(x=condition, y=counts, group=sample, color=sample)) +
   geom_point() + 
   scale_y_log10() +
-  geom_line()
+  geom_line() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+        plot.title = element_text(hjust = 0.5)) +
+  labs(x = "Status", y = "Read counts", color = "Sample") +
+  ggtitle("Mitochondrial genes") +
+  scale_color_manual(values = colors_samples)
 
 pdf("../../figures/figure4.pdf", width = 12, height = 8, family = "sans")
 pA + pB + pC + pD +
+  plot_layout(nrow = 2, heights = c(1,1)) +
   plot_annotation(tag_levels = "A")
 dev.off()

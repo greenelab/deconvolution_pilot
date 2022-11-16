@@ -23,7 +23,7 @@ source("figure_utils.R")
 source("../evaluation/evaluation_functions.R")
 
 # Which methods have values that represent true proportions (i.e. sum to 1)
-proportions <- c("abis", "bayesprism", "bisque", "cibersortx", "epic", "music", "nnls", "quantiseq")
+proportions <- c("bayesprism", "bisque", "cibersortx", "epic", "music", "nnls")
 scores <- c("consensus_tme", "immucellai", "mcpcounter", "timer", "xcell")
 
 # Plot true proportions for pseudobulk samples
@@ -33,10 +33,12 @@ melted_fractions <- load_pseudobulk_fractions(pseudobulk_types)
 # Filter down to one sample for easier visualization
 demo_fractions <- melted_fractions[grep("2380", melted_fractions$sample),]
 
-pA <- ggplot(demo_fractions, mapping = aes(x=sample, y=proportion, fill=cell_type)) +
+pA <-ggplot(demo_fractions, mapping = aes(x=sample, y=proportion, fill=cell_type)) +
   geom_bar(stat = "identity") +
   #theme(legend.position = "bottom") + 
-  facet_wrap("~bulk_type", ncol = 1) +
+  facet_wrap("~bulk_type", ncol = 4) +
+  scale_fill_manual(values = colors_celltypes) + 
+  labs(fill = "Cell type") +
   xlab("Simulated sample") + ylab("Proportion") +
   theme(axis.text.x=element_blank(), #remove x axis labels
         axis.ticks.x=element_blank()) #remove x axis ticks
@@ -69,18 +71,21 @@ correlations <- melted_pseudo_results %>%
   summarize(cor = cor(proportion, true_proportion))
 pB <- ggplot(correlations, mapping = aes(x=bulk_type, y=cor, group=method, color=method)) +
   geom_point() + geom_line() +
+  scale_color_manual(name = "Method", values = colors_methods) +
   xlab("Pseudo-bulk simulation type") +
-  ylab("Correlation with true pseudo-bulk proportions")
+  ylab("Correlation with true pseudo-bulk proportions") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5))
 
 # Subtract true proportions from deconvolution estimates
 melted_pseudo_results$proportion <- melted_pseudo_results$proportion - melted_pseudo_results$true_proportion
 melted_pseudo_results$true_proportion <- NULL
 
 # Plot accuracy by cell type
-pC <- ggplot(melted_pseudo_results, aes(x = cell_type, y = proportion, fill = method)) +
-  geom_boxplot() +
-  ylab("Estimated proportion - true proportion") + xlab("Cell type") + 
-  theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+pC <- ggplot(melted_pseudo_results) + geom_boxplot(mapping = aes(x = cell_type, y= proportion, fill = method, color = method)) +
+  geom_boxplot(mapping = aes(x = cell_type, y = proportion, fill = method), outlier.colour = NA) +
+  scale_color_manual(name = "Method", values = colors_methods) +
+  scale_fill_manual(name = "Method", values = colors_methods) +
+  ylab("Estimated proportion - true proportion") + xlab("Cell type")
 
 
 
@@ -100,10 +105,11 @@ melted_real_results$proportion <- melted_real_results$proportion - melted_real_r
 melted_real_results$proportion.sc <- NULL
 
 # Plot true accuracy by cell type
-pD <- ggplot(melted_real_results, aes(x = cell_type, y = proportion, fill = method)) + geom_boxplot() +
-  ylab("Estimated proportion - single cell proportion") + xlab("Cell type") + 
-  theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
-
+pD <- ggplot(melted_real_results) + geom_boxplot(mapping = aes(x = cell_type, y= proportion, fill = method, color = method)) +
+  geom_boxplot(mapping = aes(x = cell_type, y = proportion, fill = method), outlier.colour = NA) +
+  scale_color_manual(name = "Method", values = colors_methods) +
+  scale_fill_manual(name = "Method", values = colors_methods) +
+  ylab("Estimated proportion - single cell proportion") + xlab("Cell type")
 
 
 
@@ -125,15 +131,16 @@ mcpcounter <- inner_join(mcpcounter, res)
 pE <- ggplot(mcpcounter, mapping = aes(x = log2FoldChange, y = -log10(padj), color = cell_type)) +
   geom_point() +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
-  geom_vline(xintercept = c(log2(0.5), log2(2)), linetype = "dashed")
-
+  geom_vline(xintercept = c(log2(0.5), log2(2)), linetype = "dashed") +
+  xlab("log2 fold change") + ylab("-log10 adjusted p-value") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
+  labs(color = "Cell type")
 
 pdf("../../figures/figure5.pdf", width = 20, height = 12, family = "sans")
-pA + (pB / pC) + (pD / pE) +
-  plot_layout(ncol = 3, width = c(2, 3, 3)) +
-  plot_annotation(tag_levels = "A")
+top <- pA + pB + plot_layout(ncol = 2, width = c(5, 2))
+bottom <- pC + pD + pE + plot_layout(ncol = 3, width = c(3, 3, 2))
+top / bottom + plot_annotation(tag_levels = "A")
 dev.off()
-
 
 
 make_proportion_heatmap <- function(melted_results, bt) {
@@ -146,7 +153,18 @@ make_proportion_heatmap <- function(melted_results, bt) {
                                      levels = sort(unique(melted_results$cell_type),
                                                    decreasing = TRUE))
   
-  melted_results
+  # Reshape and then melt to replace NAs with 0s
+  reshaped_heatmap <- reshape(data=melted_results, 
+                       idvar="cell_type",
+                       v.names="proportion",
+                       timevar= "method",
+                       direction="wide")
+  colnames(reshaped_heatmap) <- gsub("proportion.", "", colnames(reshaped_heatmap))
+  
+  remelt <- melt(reshaped_heatmap)
+  setnames(remelt, c("cell_type", "method", "proportion"))
+  
+  remelt
 }
 
 
@@ -154,20 +172,26 @@ make_proportion_heatmap <- function(melted_results, bt) {
 # Make heatmap of proportion differences for each bulk type separately
 chunk_ribo <- make_proportion_heatmap(melted_real_results, "chunk_ribo")
 sA <- ggplot(chunk_ribo, aes(x=method, y=cell_type, fill=proportion)) +
-  geom_raster() + geom_text(aes(label = proportion), size = 8) +
-  #gradient_fill(modified_viridis) +
+  geom_raster() + geom_text(aes(label = proportion), size = 6) +
+scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None")
 
 dissociated_ribo <- make_proportion_heatmap(melted_real_results, "dissociated_ribo")
-sB <- ggplot(chunk_ribo, aes(x=method, y=cell_type, fill=proportion)) +
-  geom_raster() + geom_text(aes(label = proportion), size = 8) +
-  #gradient_fill(modified_viridis) +
+sB <- ggplot(dissociated_ribo, aes(x=method, y=cell_type, fill=proportion)) +
+  geom_raster() + geom_text(aes(label = proportion), size = 6) +
+  scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None")
 
 dissociated_polyA <- make_proportion_heatmap(melted_real_results, "dissociated_polyA")
-sC <- ggplot(chunk_ribo, aes(x=method, y=cell_type, fill=proportion)) +
-  geom_raster() + geom_text(aes(label = proportion), size = 8) +
-  #gradient_fill(modified_viridis) +
+sC <- ggplot(dissociated_polyA, aes(x=method, y=cell_type, fill=proportion)) +
+  geom_raster() + geom_text(aes(label = proportion), size = 6) +
+  scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") + 
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None")
 
 pdf("../../figures/suppfig5.pdf", width = 24, height = 12, family = "sans")
