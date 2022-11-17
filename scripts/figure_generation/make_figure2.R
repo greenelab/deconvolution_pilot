@@ -151,7 +151,7 @@ pA <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
         plot.title = element_text(hjust = 0.5)) +
   xlab("UMAP 1") + ylab("UMAP 2") +
-  ggtitle("Pool 12162021") +
+  ggtitle("Batch A") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -179,7 +179,7 @@ pB <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
         plot.title = element_text(hjust = 0.5)) +
   xlab("UMAP 1") + ylab("UMAP 2") +
-  ggtitle("Pool 12162021") +
+  ggtitle("Batch B") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -269,6 +269,7 @@ sce_matrix$Assignment <- dec_sce$assignment_0.85
 qA <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   xlab("UMAP 1") + ylab("UMAP 2") +
+  ggtitle("Batch A, 85% Threshold") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -281,6 +282,7 @@ sce_matrix$Assignment <- jan_sce$assignment_0.85
 qB <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   xlab("UMAP 1") + ylab("UMAP 2") +
+  ggtitle("Batch B, 85% Threshold") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -293,6 +295,7 @@ sce_matrix$Assignment <- dec_sce$assignment_0.80
 qC <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   xlab("UMAP 1") + ylab("UMAP 2") +
+  ggtitle("Batch A, 80% Threshold") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -305,6 +308,7 @@ sce_matrix$Assignment <- jan_sce$assignment_0.80
 qD <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point() +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   xlab("UMAP 1") + ylab("UMAP 2") +
+  ggtitle("Batch B, 80% Threshold") +
   scale_color_manual(name = "Assignment",
                      values = c("Hashtag1" = "#CA0020",
                                 "Hashtag2" = "#0571B0",
@@ -346,6 +350,7 @@ dec_ct <- load_cell_types("12162021", dec_hashing)
 dec_unassigned <- make_cell_type_barchart(dec_ct)
 rA <- ggplot(dec_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) +
   geom_bar(stat = "identity") +
+  ggtitle("Batch A") +
   ylab("Proportion") + 
   labs(fill = "Cell type") +
   theme(axis.title.x = element_blank())
@@ -354,6 +359,7 @@ jan_ct <- load_cell_types("01132022", jan_hashing)
 jan_unassigned <- make_cell_type_barchart(jan_ct)
 rB <- ggplot(jan_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) +
   geom_bar(stat = "identity") +
+  ggtitle("Batch B") +
   ylab("Proportion") + 
   labs(fill = "Cell type") +
   theme(axis.title.x = element_blank())
@@ -423,29 +429,29 @@ sA <- ggplot(confusion1, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") + 
-  ggtitle("Pool 12162021") +
+  ggtitle("Batch A") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
 
-confusion2 <- get_genotype_heatmaps("12162021", "dissociated_ribo", "dissociated_polyA")
-sB <- ggplot(confusion2, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells)) +
-  geom_raster() + geom_text(aes(label = cells), size = 6) +
-  heatmap_scale_1d + 
-  scale_x_discrete(expand = c(0, 0)) +
-  scale_y_discrete(expand = c(0, 0)) +
-  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") + 
-  ggtitle("Pool 12162021") +
-  theme(legend.position = "None",
-        plot.title = element_text(hjust = 0.5))
-
-confusion3 <- get_genotype_heatmaps("01132022", "chunk_ribo", "dissociated_ribo")
-sC <- ggplot(confusion3, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
+confusion2 <- get_genotype_heatmaps("01132022", "chunk_ribo", "dissociated_ribo")
+sB <- ggplot(confusion2, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
   geom_raster() + geom_text(aes(label = cells), size = 6) +
   heatmap_scale_1d + 
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") + 
-  ggtitle("Pool 01132022") +
+  ggtitle("Batch B") +
+  theme(legend.position = "None",
+        plot.title = element_text(hjust = 0.5))
+
+confusion3 <- get_genotype_heatmaps("12162021", "dissociated_ribo", "dissociated_polyA")
+sC <- ggplot(confusion3, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells)) +
+  geom_raster() + geom_text(aes(label = cells), size = 6) +
+  heatmap_scale_1d + 
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") + 
+  ggtitle("Batch A") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
 
@@ -456,7 +462,7 @@ sD <- ggplot(confusion4, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") + 
-  ggtitle("Pool 01132022") +
+  ggtitle("Batch B") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
 
