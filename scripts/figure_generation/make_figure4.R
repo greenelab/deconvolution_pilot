@@ -17,6 +17,7 @@ suppressPackageStartupMessages({
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
+figure_path <- params$figure_path
 samples <- params$samples
 
 source("figure_utils.R")
@@ -119,7 +120,7 @@ pD <- ggplot(mito_expr, aes(x=condition, y=counts, group=sample, color=sample)) 
   ggtitle("Mitochondrial genes") +
   scale_color_manual(values = colors_samples)
 
-pdf("../../figures/figure4.pdf", width = 12, height = 8, family = "sans")
+pdf(paste(figure_path, "figure4.pdf", sep = "/"), width = 12, height = 8, family = "sans")
 pA + pB + pC + pD +
   plot_layout(nrow = 2, heights = c(1,1)) +
   plot_annotation(tag_levels = "A")

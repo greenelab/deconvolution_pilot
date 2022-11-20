@@ -15,6 +15,7 @@ suppressPackageStartupMessages({
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
+figure_path <- params$figure_path
 samples <- params$samples
 
 source("figure_utils.R")
@@ -24,28 +25,28 @@ load_and_filter_datasets <- function(sample_id) {
   hashing <- fread(paste(data_path, "pooled_tumors", sample_id,
                              "Cellranger/outs/multi/multiplexing_analysis",
                              "assignment_confidence_table.csv", sep = "/"))
-  genetic <- fread(paste(data_path, "pooled_tumors", sample_id, 
+  genetic <- fread(paste(data_path, "pooled_tumors", sample_id,
                          "vireo/chunk_ribo/donor_ids.tsv", sep = "/"))
   sce <- readRDS(paste(local_data_path,"/sce_objects/",
                        sample_id, ".rds", sep = ""))
-  
+ 
   # Cut off "anti-human" part of hashtag labels for legend labels
   hashing$Assignment <- gsub("anti-human_","",hashing$Assignment)
-  
+ 
   # Rename assignment column to match future label convention
   setnames(hashing, "Assignment", "assignment_0.90")
-  
+ 
   # Rename barcode columns to match
   setnames(genetic, "cell", "Barcodes")
-  
+ 
   # Set assignment columns to factors, so they'll order properly in confusion matrix
   hashing$assignment_0.90 <- as.factor(hashing$assignment_0.90)
   genetic$donor_id <- as.factor(genetic$donor_id)
-  
+ 
   # Filter hashing and vireo to cells in sce object, all others failed miQC filtering
   hashing <- subset(hashing, hashing$Barcodes %in% sce$Barcode)
   genetic <- subset(genetic, genetic$Barcodes %in% sce$Barcode)
-  
+ 
   list(hashing, genetic, sce)
 }
 
@@ -53,26 +54,26 @@ load_cell_types <- function(sample_id, hashing) {
   # Load celltypist assignments
   ct <- fread(paste(local_data_path, "/celltypist_output/",
                     sample_id, "_predicted_labels.csv", sep = ""))
-  
+ 
   # Consolidate based on hierarchical structure from CellTypist encyclopedia
   label_table <- fread(paste(local_data_path,
                              "/celltypist_output/simplified_labels.tsv",
                              sep = ""))
   setnames(label_table, "Original", "majority_voting")
   ct <- left_join(ct, label_table)
-  
+ 
   # Combine cell type and sample assignments
   setnames(ct, "V1", "Barcodes")
   ct <- left_join(ct, hashing)
-  
+ 
   ct
 }
 
 set_new_threshold <- function(assignment_table,
-                              hashtag_prob, 
+                              hashtag_prob,
                               other_hashtag_prob = 0.001) {
   assignment_table[assignment_table$assignment_0.90 == "Unassigned" &
-                     assignment_table$`anti-human_Hashtag1` >= hashtag_prob & 
+                     assignment_table$`anti-human_Hashtag1` >= hashtag_prob &
                      assignment_table$`anti-human_Hashtag2` <= other_hashtag_prob &
                      assignment_table$`anti-human_Hashtag3` <= other_hashtag_prob &
                      assignment_table$`anti-human_Hashtag4` <= other_hashtag_prob, ]$assignment_0.90 = "Hashtag1"
@@ -94,7 +95,7 @@ set_new_threshold <- function(assignment_table,
                      assignment_table$`anti-human_Hashtag3` <= other_hashtag_prob &
                      assignment_table$`anti-human_Hashtag4` >= hashtag_prob,
                    ]$assignment_0.90 = "Hashtag4"
-  
+ 
   assignment_table$assignment_0.90
 }
 
@@ -106,22 +107,22 @@ make_overlap_matrix <- function(hashing,
   hash_assignment_label <- paste("assignment", hashtag_prob, sep = "_")
   groups <- c(hash_assignment_label, "donor_id")
   master_list <- subset(master_list, select = groups)
-  grouped_data <- master_list %>% 
+  grouped_data <- master_list %>%
     group_by(across(all_of(groups))) %>%
     summarize(count = n()) %>% as.data.frame()
-  
+ 
   # Reshape and then melt to replace NAs with 0s
-  confusion <- reshape(data=grouped_data, 
+  confusion <- reshape(data=grouped_data,
                        idvar="donor_id",
                        v.names="count",
                        timevar=hash_assignment_label,
                        direction="wide")
   colnames(confusion) <- gsub("count.", "", colnames(confusion))
   confusion[is.na(confusion)] <- 0
-  
+ 
   grouped_data <- melt(confusion)
   setnames(grouped_data, c("genetic_assignment", "hash_assignment", "cells"))
-  
+ 
   # Set assignment labels as factors so I can order them how I want
   grouped_data$genetic_assignment <- factor(grouped_data$genetic_assignment,
                                             levels = c("unassigned", "doublet",
@@ -226,10 +227,10 @@ pD <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
 dec_confusion <- make_overlap_matrix(dec_hashing, dec_genetic, "0.90")
 pE <- ggplot(dec_confusion, aes(x=hash_assignment, y=genetic_assignment, fill=cells)) +
   geom_raster() + geom_text(aes(label = cells), size = 6) +
-  heatmap_scale_1d + 
+  heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("Hash demultiplexing assignment") + ylab("Genetic demultiplexing assignment") + 
+  xlab("Hash demultiplexing assignment") + ylab("Genetic demultiplexing assignment") +
   theme(legend.position = "None")
 
 
@@ -239,10 +240,10 @@ pF <- ggplot(jan_confusion, aes(x=hash_assignment, y=genetic_assignment, fill=ce
   heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("Hash demultiplexing assignment") + ylab("Genetic demultiplexing assignment") + 
+  xlab("Hash demultiplexing assignment") + ylab("Genetic demultiplexing assignment") +
   theme(legend.position = "None")
 
-pdf("../../figures/figure2.pdf", width = 16, height = 16, family = "sans")
+pdf(paste(figure_path, "figure2.pdf", sep = "/"), width = 16, height = 16, family = "sans")
 pA + pB + pC + pD + pE + pF +
   plot_layout(nrow = 3) +
   plot_annotation(tag_levels = "A")
@@ -316,7 +317,7 @@ qD <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
                                 "Hashtag4" = "#E66101",
                                 "Unassigned" = "#999999"))
 
-pdf("../../figures/suppfig1.pdf", width = 15, height = 10.6, family = "sans")
+pdf(paste(figure_path, "suppfig1.pdf", sep = "/"), width = 15, height = 10.6, family = "sans")
 qA + qB + qC + qD + plot_annotation(tag_levels = "A")
 dev.off()
 
@@ -327,22 +328,22 @@ make_cell_type_barchart <- function(ct) {
   ct_all <- table(ct$Simplified)
   ct_all <- as.data.frame(ct_all/sum(ct_all))
   ct_all$type <- "All cells"
-  
+ 
   ct_unassigned_90 <- table(ct[ct$assignment_0.90=="Unassigned",]$Simplified)
   ct_unassigned_90 <- as.data.frame(ct_unassigned_90/sum(ct_unassigned_90))
   ct_unassigned_90$type <- "Unassigned at 90% Threshold"
-  
+ 
   ct_unassigned_85 <- table(ct[ct$assignment_0.85=="Unassigned",]$Simplified)
   ct_unassigned_85 <- as.data.frame(ct_unassigned_85/sum(ct_unassigned_85))
   ct_unassigned_85$type <- "Unassigned at 85% Threshold"
-  
+ 
   ct_unassigned_80 <- table(ct[ct$assignment_0.80=="Unassigned",]$Simplified)
   ct_unassigned_80 <- as.data.frame(ct_unassigned_80/sum(ct_unassigned_80))
   ct_unassigned_80$type <- "Unassigned at 80% Threshold"
- 
+
   unassigned <- rbind(ct_all, ct_unassigned_90, ct_unassigned_85, ct_unassigned_80)
   setnames(unassigned, c("cell_type", "proportion", "type"))
-  
+ 
   unassigned
 }
 
@@ -351,7 +352,7 @@ dec_unassigned <- make_cell_type_barchart(dec_ct)
 rA <- ggplot(dec_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) +
   geom_bar(stat = "identity") +
   ggtitle("Batch A") +
-  ylab("Proportion") + 
+  ylab("Proportion") +
   labs(fill = "Cell type") +
   theme(axis.title.x = element_blank())
 
@@ -360,51 +361,51 @@ jan_unassigned <- make_cell_type_barchart(jan_ct)
 rB <- ggplot(jan_unassigned, mapping = aes(x=type, y=proportion, fill=cell_type)) +
   geom_bar(stat = "identity") +
   ggtitle("Batch B") +
-  ylab("Proportion") + 
+  ylab("Proportion") +
   labs(fill = "Cell type") +
   theme(axis.title.x = element_blank())
 
-pdf("../../figures/suppfig2.pdf", width = 12, height = 6, family = "sans")
+pdf(paste(figure_path, "suppfig2.pdf", sep = "/"), width = 12, height = 6, family = "sans")
 rA + rB + plot_annotation(tag_levels = "A")
 dev.off()
 
 
 
 
-get_genotype_heatmaps <- function(sample_id, type1, type2) { 
+get_genotype_heatmaps <- function(sample_id, type1, type2) {
   vireo_path <- paste(data_path, "pooled_tumors", sample_id, "vireo", sep = "/")
   data1 <- fread(paste(vireo_path, type1, "donor_ids.tsv", sep = "/"))
   data2 <- fread(paste(vireo_path, type2, "donor_ids.tsv", sep = "/"))
-  
+ 
   # Filter vireo to cells in sce object, all others failed miQC filtering
   sce <- readRDS(paste(local_data_path,"/sce_objects/",
                        sample_id, ".rds", sep = ""))
   data1 <- subset(data1, data1$cell %in% sce$Barcode)
   data2 <- subset(data2, data2$cell %in% sce$Barcode)
-  
+ 
   setnames(data1, "donor_id", type1)
   setnames(data2, "donor_id", type2)
-  
+ 
   data1 <- subset(data1, select = c("cell", type1))
   data2 <- subset(data2, select = c("cell", type2))
-  
+ 
   master_list <- full_join(data1, data2)
-  
+ 
   groups <- c(type1, type2)
   master_list <- subset(master_list, select = groups)
-  grouped_data <- master_list %>% 
+  grouped_data <- master_list %>%
     group_by(across(all_of(groups))) %>%
     summarize(count = n()) %>% as.data.frame()
-  
+ 
   # Reshape and then melt to replace NAs with 0s
-  confusion <- reshape(data=grouped_data, 
+  confusion <- reshape(data=grouped_data,
                        idvar=type1,
                        v.names="count",
                        timevar=type2,
                        direction="wide")
   colnames(confusion) <- gsub("count.", "", colnames(confusion))
   confusion[is.na(confusion)] <- 0
-  
+ 
   grouped_data <- melt(confusion)
 
   # Set assignment labels as factors so I can order them how I want
@@ -418,17 +419,17 @@ get_genotype_heatmaps <- function(sample_id, type1, type2) {
                                            "donor3", "donor2",
                                            "donor1", "donor0"))
 
-  setnames(grouped_data, c(type1, type2, "cells"))  
+  setnames(grouped_data, c(type1, type2, "cells")) 
   grouped_data
 }
 
 confusion1 <- get_genotype_heatmaps("12162021", "chunk_ribo", "dissociated_ribo")
 sA <- ggplot(confusion1, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
   geom_raster() + geom_text(aes(label = cells), size = 6) +
-  heatmap_scale_1d + 
+  heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") + 
+  xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") +
   ggtitle("Batch A") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
@@ -436,10 +437,10 @@ sA <- ggplot(confusion1, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
 confusion2 <- get_genotype_heatmaps("01132022", "chunk_ribo", "dissociated_ribo")
 sB <- ggplot(confusion2, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
   geom_raster() + geom_text(aes(label = cells), size = 6) +
-  heatmap_scale_1d + 
+  heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") + 
+  xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") +
   ggtitle("Batch B") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
@@ -447,10 +448,10 @@ sB <- ggplot(confusion2, aes(x=chunk_ribo, y=dissociated_ribo, fill=cells)) +
 confusion3 <- get_genotype_heatmaps("12162021", "dissociated_ribo", "dissociated_polyA")
 sC <- ggplot(confusion3, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells)) +
   geom_raster() + geom_text(aes(label = cells), size = 6) +
-  heatmap_scale_1d + 
+  heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") + 
+  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") +
   ggtitle("Batch A") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
@@ -458,15 +459,15 @@ sC <- ggplot(confusion3, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells
 confusion4 <- get_genotype_heatmaps("01132022", "dissociated_ribo", "dissociated_polyA")
 sD <- ggplot(confusion4, aes(x=dissociated_ribo, y=dissociated_polyA, fill=cells)) +
   geom_raster() + geom_text(aes(label = cells), size = 6) +
-  heatmap_scale_1d + 
+  heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") + 
+  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") +
   ggtitle("Batch B") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
 
-pdf("../../figures/suppfig3.pdf", width = 12, height = 12, family = "sans")
+pdf(paste(figure_path, "suppfig3.pdf", sep = "/"), width = 12, height = 12, family = "sans")
 sA + sB + sC + sD +
   plot_annotation(tag_levels = "A")
 dev.off()

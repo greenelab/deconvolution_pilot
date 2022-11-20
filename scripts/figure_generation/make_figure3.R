@@ -18,6 +18,7 @@ suppressPackageStartupMessages({
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
+figure_path <- params$figure_path
 samples <- params$samples
 
 source("figure_utils.R")
@@ -129,7 +130,7 @@ pD <- ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
   labs(x = "Status", y = "Read counts", color = "Sample") +
     scale_color_manual(values = colors_samples)
   
-pdf("../../figures/figure3.pdf", width = 12, height = 16, family = "sans")
+pdf(paste(figure_path, "figure3.pdf", sep = "/"), width = 12, height = 16, family = "sans")
 (pA + pB) / pC / pD + 
   plot_annotation(tag_levels = "A")
 dev.off()

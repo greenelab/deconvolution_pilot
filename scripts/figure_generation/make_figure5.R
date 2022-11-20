@@ -17,6 +17,7 @@ suppressPackageStartupMessages({
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
+figure_path <- params$figure_path
 samples <- params$samples
 
 source("figure_utils.R")
@@ -35,9 +36,9 @@ demo_fractions <- melted_fractions[grep("2380", melted_fractions$sample),]
 
 pA <-ggplot(demo_fractions, mapping = aes(x=sample, y=proportion, fill=cell_type)) +
   geom_bar(stat = "identity") +
-  #theme(legend.position = "bottom") + 
+  #theme(legend.position = "bottom") +
   facet_wrap("~bulk_type", ncol = 4) +
-  scale_fill_manual(values = colors_celltypes) + 
+  scale_fill_manual(values = colors_celltypes) +
   labs(fill = "Cell type") +
   xlab("Simulated sample") + ylab("Proportion") +
   theme(axis.text.x=element_blank(), #remove x axis labels
@@ -136,7 +137,7 @@ pE <- ggplot(mcpcounter, mapping = aes(x = log2FoldChange, y = -log10(padj), col
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   labs(color = "Cell type")
 
-pdf("../../figures/figure5.pdf", width = 20, height = 12, family = "sans")
+pdf(paste(figure_path, "figure5.pdf", sep = "/"), width = 20, height = 12, family = "sans")
 top <- pA + pB + plot_layout(ncol = 2, width = c(5, 2))
 bottom <- pC + pD + pE + plot_layout(ncol = 3, width = c(3, 3, 2))
 top / bottom + plot_annotation(tag_levels = "A")
@@ -149,21 +150,21 @@ make_proportion_heatmap <- function(melted_results, bt) {
   melted_results <- as.data.frame(melted_results %>% group_by(cell_type, method) %>% summarize(proportion = mean(proportion)))
   melted_results$proportion <- round(melted_results$proportion, digits = 2)
 
-  melted_results$cell_type <- factor(melted_results$cell_type, 
+  melted_results$cell_type <- factor(melted_results$cell_type,
                                      levels = sort(unique(melted_results$cell_type),
                                                    decreasing = TRUE))
-  
+ 
   # Reshape and then melt to replace NAs with 0s
-  reshaped_heatmap <- reshape(data=melted_results, 
+  reshaped_heatmap <- reshape(data=melted_results,
                        idvar="cell_type",
                        v.names="proportion",
                        timevar= "method",
                        direction="wide")
   colnames(reshaped_heatmap) <- gsub("proportion.", "", colnames(reshaped_heatmap))
-  
+ 
   remelt <- melt(reshaped_heatmap)
   setnames(remelt, c("cell_type", "method", "proportion"))
-  
+ 
   remelt
 }
 
@@ -189,12 +190,12 @@ sB <- ggplot(dissociated_ribo, aes(x=method, y=cell_type, fill=proportion)) +
 dissociated_polyA <- make_proportion_heatmap(melted_real_results, "dissociated_polyA")
 sC <- ggplot(dissociated_polyA, aes(x=method, y=cell_type, fill=proportion)) +
   geom_raster() + geom_text(aes(label = proportion), size = 6) +
-  scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") + 
+  scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None")
 
-pdf("../../figures/suppfig5.pdf", width = 24, height = 12, family = "sans")
+pdf(paste(figure_path, "suppfig5.pdf", sep = "/"), width = 24, height = 12, family = "sans")
 sA + sB + sC +
   plot_annotation(tag_levels = "A")
 dev.off()

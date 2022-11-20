@@ -18,6 +18,7 @@ suppressPackageStartupMessages({
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
+figure_path <- params$figure_path
 samples <- params$samples
 
 source("figure_utils.R")
@@ -37,7 +38,7 @@ pseudobulk_types <- c("realistic", "even", "weighted", "sparse")
 # Load all deconvolution results into a single dataframe
 melted_results <- load_melted_results()
 melted_results <- subset(melted_results, melted_results$method %in% proportions &
-                           !melted_results$bulk_type %in% pseudobulk_types) 
+                           !melted_results$bulk_type %in% pseudobulk_types)
 
 # Unify cell type nomenclature across methods
 melted_results <- rename_cell_types(melted_results)
@@ -46,8 +47,8 @@ melted_results <- rename_cell_types(melted_results)
 results <- melted_results %>% group_by(method, cell_type, variable) %>% summarize(variance = var(proportion))
 results <- subset(results, results$cell_type %in% cell_types)
 
-pA <- ggplot(results) + geom_boxplot(mapping = aes(x = method, y= log(variance), fill = cell_type, color = cell_type)) +
-  geom_boxplot(mapping = aes(x=method, y = log(variance), fill = cell_type), outlier.colour = NA) +
+pA <- ggplot(results) + geom_boxplot(mapping = aes(x = method, y = log(variance), fill = cell_type, color = cell_type)) +
+  geom_boxplot(mapping = aes(x = method, y = log(variance), fill = cell_type), outlier.colour = NA) +
   xlab("Method") + ylab("log(bulk variance)") +
   scale_color_manual(name = "Cell type", values = colors_celltypes) +
   scale_fill_manual(name = "Cell type", values = colors_celltypes)
@@ -55,7 +56,7 @@ pA <- ggplot(results) + geom_boxplot(mapping = aes(x = method, y= log(variance),
 
 # Split deconvolution results into demultiplex defaults and original
 melted_results <- load_melted_results(demultiplex_default = TRUE)
-demultiplexed_types <- grep("demultiplex_default", unique(melted_results$bulk_type), value = T)
+demultiplexed_types <- grep("demultiplex_default", unique(melted_results$bulk_type), value = TRUE)
 demultiplexed <- subset(melted_results, melted_results$bulk_type %in% demultiplexed_types)
 melted_results <- subset(melted_results, melted_results$method %in% demultiplexed$method)
 original <- subset(melted_results, !melted_results$bulk_type %in% demultiplexed_types)
@@ -65,8 +66,8 @@ melted_results$bulk_type <- gsub("_demultiplex_default", "", melted_results$bulk
 variance <- melted_results %>% group_by(method, cell_type, variable, bulk_type) %>%
   summarize(variance = var(proportion))
 
-pB <- ggplot(variance) + geom_boxplot(mapping = aes(x = method, y= log(variance), fill = cell_type, color = cell_type)) +
-  geom_boxplot(mapping = aes(x=method, y = log(variance), fill = cell_type), outlier.colour = NA) +
+pB <- ggplot(variance) + geom_boxplot(mapping = aes(x = method, y = log(variance), fill = cell_type, color = cell_type)) +
+  geom_boxplot(mapping = aes(x = method, y = log(variance), fill = cell_type), outlier.colour = NA) +
   xlab("Method") + ylab("log(demultiplexing variance)") +
   scale_color_manual(name = "Cell type", values = colors_celltypes) +
   scale_fill_manual(name = "Cell type", values = colors_celltypes)
@@ -79,10 +80,10 @@ setnames(original, "proportion", "original_proportion")
 deconvolution <- full_join(demultiplexed, original)
 
 # Check correlations
-corrs <- deconvolution %>% group_by(method, bulk_type) %>% 
+corrs <- deconvolution %>% group_by(method, bulk_type) %>%
   summarize(cor = cor(demultiplexed_proportion, original_proportion))
 corrs$method <- as.factor(corrs$method)
-pC <- ggplot(corrs, mapping = aes(x=bulk_type, y=cor, group=method, color=method)) + geom_point() +
+pC <- ggplot(corrs, mapping = aes(x = bulk_type, y = cor, group = method, color = method)) + geom_point() +
   geom_line() + xlab("Bulk type") + ylab("Demultiplexing correlation") +
   scale_color_manual(name = "Method", values = colors_methods,
                      limits = c("bayesprism", "bisque","cibersortx","music","nnls"))
@@ -90,8 +91,8 @@ pC <- ggplot(corrs, mapping = aes(x=bulk_type, y=cor, group=method, color=method
 
 # Check proportion differences
 deconvolution$diff <- deconvolution$demultiplexed_proportion - deconvolution$original_proportion
-pD <- ggplot(deconvolution) + geom_boxplot(mapping = aes(x = method, y= diff, fill = bulk_type, color = bulk_type)) +
-  geom_boxplot(mapping = aes(x=method, y = diff, fill = bulk_type), outlier.colour = NA) +
+pD <- ggplot(deconvolution) + geom_boxplot(mapping = aes(x = method, y = diff, fill = bulk_type, color = bulk_type)) +
+  geom_boxplot(mapping = aes(x = method, y = diff, fill = bulk_type), outlier.colour = NA) +
   xlab("Method") + ylab("Proportion (demultiplexed - original)") +
   scale_color_manual(name = "Bulk type", values = colors_bulktypes) +
   scale_fill_manual(name = "Bulk type", values = colors_bulktypes)
@@ -151,16 +152,8 @@ melted_real_results$prop_diff <- melted_real_results$proportion - melted_real_re
 melted_real_results$prop_diff_sq <- melted_real_results$prop_diff ^ 2
 real_sum_sqs <- melted_real_results %>% group_by(method) %>% summarize(real_rmse = sqrt(mean(prop_diff_sq)))
 
-## Completeness (if the method gives results for all cell types of interest)
-completeness_results <- subset(melted_real_results, melted_real_results$sample != "2428")
-completeness <- completeness_results %>% group_by(method, bulk_type, sample)%>% summarize(possible_proportions = sum(proportion.sc)) %>%
-  group_by(method) %>% summarize(pct_explained = mean(possible_proportions))
-completeness$immune_only <- completeness$method %in% c("quantiseq", "abis")
-
-
 # Plot accuracy vs robustness
 total <- full_join(robustness, coors)
-#total <- full_join(total, completeness)
 pE <- ggplot(total, mapping = aes(x = average_var, y = cor, color = method)) +
   geom_point(aes(size = 10)) +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
@@ -181,9 +174,7 @@ pF <- ggplot(total, mapping = aes(x = average_var, y = real_cor, color = method)
   scale_color_manual(name = "Method", values = colors_methods)
 
 
-
-
-pdf("../../figures/figure6.pdf", width = 16, height = 14, family = "sans")
+pdf(paste(figure_path, "figure6.pdf", sep = "/"), width = 16, height = 14, family = "sans")
 pA + pB + pC + pD + pE + pF +
   plot_layout(ncol = 2) +
   plot_annotation(tag_levels = "A")
@@ -215,6 +206,6 @@ qB <- ggplot(total, mapping = aes(x = average_var, y = real_rmse, color = method
   guides(color = "none", size = "none") +
   scale_color_manual(name = "Method", values = colors_methods)
 
-pdf("../../figures/suppfig6.pdf", width = 12, height = 6, family = "sans")
+pdf(paste(figure_path, "suppfig6.pdf", sep = "/"), width = 12, height = 6, family = "sans")
 qA + qB + plot_annotation(tag_levels = "A")
 dev.off()
