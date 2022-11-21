@@ -36,8 +36,15 @@ load_and_filter_datasets <- function(sample_id) {
   # Rename assignment column to match future label convention
   setnames(hashing, "Assignment", "assignment_0.90")
  
-  # Rename barcode columns to match
+  # Rename barcode columns to match and capitalize variable names
   setnames(genetic, "cell", "Barcodes")
+  genetic$donor_id <- recode(genetic$donor_id,
+			    "donor0" = "Donor0",
+			    "donor1" = "Donor1",
+			    "donor2" = "Donor2",
+			    "donor3" = "Donor3",
+			    "unassigned" = "Unassigned",
+			    "doublet" = "Doublet")
  
   # Set assignment columns to factors, so they'll order properly in confusion matrix
   hashing$assignment_0.90 <- as.factor(hashing$assignment_0.90)
@@ -72,6 +79,10 @@ load_cell_types <- function(sample_id, hashing) {
 set_new_threshold <- function(assignment_table,
                               hashtag_prob,
                               other_hashtag_prob = 0.001) {
+  # cellranger multi calculates the probability of each droplet belonging to a
+  # given sample, being a multiplet, or being a blank cell. By default, it only
+  # labels cells with >=90% probability of belonging to a sample and otherwise
+  # calls it unassigned. This function relaxes that threshold to 85% or 80%.
   assignment_table[assignment_table$assignment_0.90 == "Unassigned" &
                      assignment_table$`anti-human_Hashtag1` >= hashtag_prob &
                      assignment_table$`anti-human_Hashtag2` <= other_hashtag_prob &
@@ -125,9 +136,9 @@ make_overlap_matrix <- function(hashing,
  
   # Set assignment labels as factors so I can order them how I want
   grouped_data$genetic_assignment <- factor(grouped_data$genetic_assignment,
-                                            levels = c("unassigned", "doublet",
-                                                       "donor3", "donor2",
-                                                       "donor1", "donor0"))
+                                            levels = c("Unassigned", "Doublet",
+                                                       "Donor3", "Donor2",
+                                                       "Donor1", "Donor0"))
   grouped_data
 }
 
@@ -191,7 +202,7 @@ pB <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
 
 # Add genetic assignments to SingleCellExperiment object for UMAP plotting
 colData(dec_sce) <- cbind(colData(dec_sce), "genetic_assignment" = dec_genetic$donor_id)
-dec_sce[, dec_sce$genetic_assignment=="doublet"]$genetic_assignment <- "unassigned"
+dec_sce[, dec_sce$genetic_assignment=="Doublet"]$genetic_assignment <- "Unassigned"
 dec_sce$genetic_assignment <- as.factor(dec_sce$genetic_assignment)
 
 sce_matrix <- as.data.frame(reducedDim(dec_sce, type="UMAP"))
@@ -200,15 +211,15 @@ pC <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   xlab("UMAP 1") + ylab("UMAP 2") +
   scale_color_manual(name = "Assignment",
-                     values = c("donor0" = "#4DAC26",
-                                "donor1" = "#0571B0",
-                                "donor2" = "#CA0020",
-                                "donor3" = "#E66101",
-                                "unassigned" = "#999999"))
+                     values = c("Donor0" = "#4DAC26",
+                                "Donor1" = "#0571B0",
+                                "Donor2" = "#CA0020",
+                                "Donor3" = "#E66101",
+                                "Unassigned" = "#999999"))
 
 
 colData(jan_sce) <- cbind(colData(jan_sce), "genetic_assignment" = jan_genetic$donor_id)
-jan_sce[, jan_sce$genetic_assignment=="doublet"]$genetic_assignment <- "unassigned"
+jan_sce[, jan_sce$genetic_assignment=="doublet"]$genetic_assignment <- "Unassigned"
 jan_sce$genetic_assignment <- as.factor(jan_sce$genetic_assignment)
 
 sce_matrix <- as.data.frame(reducedDim(jan_sce, type="UMAP"))
@@ -217,11 +228,11 @@ pD <- ggplot(sce_matrix, mapping=aes(x=V1, y=V2, color=Assignment)) + geom_point
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   xlab("UMAP 1") + ylab("UMAP 2") +
   scale_color_manual(name = "Assignment",
-                     values = c("donor0" = "#4DAC26",
-                                "donor1" = "#0571B0",
-                                "donor2" = "#CA0020",
-                                "donor3" = "#E66101",
-                                "unassigned" = "#999999"))
+                     values = c("Donor0" = "#4DAC26",
+                                "Donor1" = "#0571B0",
+                                "Donor2" = "#CA0020",
+                                "Donor3" = "#E66101",
+                                "Unassigned" = "#999999"))
 
 
 dec_confusion <- make_overlap_matrix(dec_hashing, dec_genetic, "0.90")
@@ -411,13 +422,13 @@ get_genotype_heatmaps <- function(sample_id, type1, type2) {
   # Set assignment labels as factors so I can order them how I want
   setnames(grouped_data, c("group1", "group2", "cells"))
   grouped_data$group1 <- factor(grouped_data$group1,
-                                            levels = c("donor0", "donor1",
-                                                       "donor2", "donor3",
-                                                       "doublet", "unassigned"))
+                                            levels = c("Donor0", "Donor1",
+                                                       "Donor2", "Donor3",
+                                                       "Doublet", "Unassigned"))
   grouped_data$group2 <- factor(grouped_data$group2,
-                                levels = c("unassigned", "doublet",
-                                           "donor3", "donor2",
-                                           "donor1", "donor0"))
+                                levels = c("Unassigned", "Doublet",
+                                           "Donor3", "Donor2",
+                                           "Donor1", "Donor0"))
 
   setnames(grouped_data, c(type1, type2, "cells")) 
   grouped_data
