@@ -101,7 +101,9 @@ pC <- ggplot(hist_expr, aes(x=condition, y=counts, group=sample, color=sample)) 
         plot.title = element_text(hjust = 0.5)) +
   labs(x = "Status", y = "Read counts", color = "Sample") +
   ggtitle("Histone genes") +
-  scale_color_manual(values = colors_samples)
+  scale_color_manual(values = colors_samples) +
+  annotation_logticks(sides = "l")
+
 
 # Get sums of all mitochondrial genes
 mito_expr <- as.data.frame(colSums(assay(dds[mt_genes,])))
@@ -118,9 +120,11 @@ pD <- ggplot(mito_expr, aes(x=condition, y=counts, group=sample, color=sample)) 
         plot.title = element_text(hjust = 0.5)) +
   labs(x = "Status", y = "Read counts", color = "Sample") +
   ggtitle("Mitochondrial genes") +
-  scale_color_manual(values = colors_samples)
+  scale_color_manual(values = colors_samples) +
+  annotation_logticks(sides = "l")
 
-pdf(paste(figure_path, "figure4.pdf", sep = "/"), width = 12, height = 8, family = "sans")
+
+pdf(paste(figure_path, "figure4.pdf", sep = "/"), width = 16, height = 10.67, family = "sans")
 pA + pB + pC + pD +
   plot_layout(nrow = 2, heights = c(1,1)) +
   plot_annotation(tag_levels = "A")

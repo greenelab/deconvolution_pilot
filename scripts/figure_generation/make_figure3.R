@@ -87,7 +87,7 @@ res_df <- res_df[order(res_df$group), ]
 pB <- ggplot(res_df, mapping = aes(x = log2FoldChange,
                                    y = -log10(padj),
                                    color = group)) +
-  geom_point() +
+  geom_point() + 
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
   geom_vline(xintercept = c(log2(0.5), log2(2)), linetype = "dashed") +
@@ -110,7 +110,8 @@ pC <- ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
     facet_wrap(~Gene) +
     theme(axis.text.x = element_text(angle=0, hjust = 0.5, vjust = 0.5)) +
     labs(x = "Status", y = "Read counts", color = "Sample") +
-    scale_color_manual(values = colors_samples)
+    scale_color_manual(values = colors_samples) +
+    annotation_logticks(sides = "l")
 
   
 # Plot adipocyte genes
@@ -128,9 +129,10 @@ pD <- ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
     facet_wrap(~Gene) +
     theme(axis.text.x = element_text(angle=0, hjust = 0.5, vjust = 0.5)) +
   labs(x = "Status", y = "Read counts", color = "Sample") +
-    scale_color_manual(values = colors_samples)
+    scale_color_manual(values = colors_samples) +
+    annotation_logticks(sides = "l")
   
-pdf(paste(figure_path, "figure3.pdf", sep = "/"), width = 12, height = 16, family = "sans")
+pdf(paste(figure_path, "figure3.pdf", sep = "/"), width = 16, height = 16, family = "sans")
 (pA + pB) / pC / pD + 
   plot_annotation(tag_levels = "A")
 dev.off()
