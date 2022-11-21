@@ -26,8 +26,8 @@ colors_celltypes <- hue_pal()(13) #ggplot defaults
 colors_methods <- c("bayesprism" = "#E6AB02", "bisque" = "#66A61E", "cibersortx" = "#E7298A",
                     "epic" = "#1B9E77", "music" = "#7570B3", "nnls" = "#D95F02") #Dark2
 
-colors_bulktypes <- c("chunk_ribo" = "#00468B", "dissociated_ribo" = "#ED0000", "dissociated_polyA" = "#42B540",
-                     "even" = "#0099B4", "realistic" = "#925E9F", "sparse" = "#FDAF91", "weighted" = "#AD002A") #currently lancet, try locuszoom
+colors_bulktypes <- c("rRNA- Chunk" = "#00468B", "rRNA- Dissociated" = "#ED0000", "polyA+ Dissociated" = "#42B540",
+                     "even" = "#0099B4", "realistic" = "#925E9F", "sparse" = "#FDAF91", "weighted" = "#AD002A") #lancet
 
 colors_genesets <- c("Adipocytes" = "#FCFC3E", "RBCs" = "#E41A1C", "Endothelial cells" = "#377EB8",
                      "Histones" = "#974EA3", "Other polyA(-)" = "#FF8F00", "MT Genes" = "#4DAF4A", "Other" = "#999999")

@@ -82,7 +82,14 @@ deconvolution <- full_join(demultiplexed, original)
 # Check correlations
 corrs <- deconvolution %>% group_by(method, bulk_type) %>%
   summarize(cor = cor(demultiplexed_proportion, original_proportion))
-corrs$method <- as.factor(corrs$method)
+corrs$bulk_type <- recode(corrs$bulk_type,
+		       "chunk_ribo" = "rRNA- Chunk",
+		       "dissociated_ribo" = "rRNA- Dissociated",
+		       "dissociated_polyA" = "polyA+ Dissociated")
+corrs$bulk_type <- factor(corrs$bulk_type, levels = c("rRNA- Chunk", "rRNA- Dissociated",
+							 "polyA+ Dissociated", "even",
+							 "realistic", "sparse", "weighted"))
+
 pC <- ggplot(corrs, mapping = aes(x = bulk_type, y = cor, group = method, color = method)) + geom_point() +
   geom_line() + xlab("Bulk type") + ylab("Demultiplexing correlation") +
   scale_color_manual(name = "Method", values = colors_methods,
@@ -91,12 +98,20 @@ pC <- ggplot(corrs, mapping = aes(x = bulk_type, y = cor, group = method, color 
 
 # Check proportion differences
 deconvolution$diff <- deconvolution$demultiplexed_proportion - deconvolution$original_proportion
+deconvolution$bulk_type <- recode(deconvolution$bulk_type,
+			       "chunk_ribo" = "rRNA- Chunk",
+			       "dissociated_ribo" = "rRNA- Dissociated",
+			       "dissociated_polyA" = "polyA+ Dissociated")
+deconvolution$bulk_type <- factor(deconvolution$bulk_type, levels = c("rRNA- Chunk", "rRNA- Dissociated",
+							 "polyA+ Dissociated", "even",
+							 "realistic", "sparse", "weighted"))
+
+
 pD <- ggplot(deconvolution) + geom_boxplot(mapping = aes(x = method, y = diff, fill = bulk_type, color = bulk_type)) +
   geom_boxplot(mapping = aes(x = method, y = diff, fill = bulk_type), outlier.colour = NA) +
   xlab("Method") + ylab("Proportion (demultiplexed - original)") +
   scale_color_manual(name = "Bulk type", values = colors_bulktypes) +
   scale_fill_manual(name = "Bulk type", values = colors_bulktypes)
-
 
 
 # Load all pseudobulk deconvolution results into a single dataframe
@@ -175,7 +190,7 @@ pF <- ggplot(total, mapping = aes(x = average_var, y = real_cor, color = method)
 
 pdf(paste(figure_path, "figure6.pdf", sep = "/"), width = 24, height = 10.67, family = "sans")
 top <- pA + pB + pC + plot_layout(ncol = 3, widths = c(5, 5, 3))
-bottom <- pD + pE + pF + plot_layout(ncol = 3, widths = c(5, 4, 4))
+bottom <- pD + pE + plot_spacer() + pF + plot_layout(ncol = 4, widths = c(5, 3, 1, 3))
 top / bottom + plot_annotation(tag_levels = "A")
 dev.off()
 

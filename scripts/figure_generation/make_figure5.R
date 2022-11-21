@@ -177,7 +177,8 @@ sA <- ggplot(chunk_ribo, aes(x=method, y=cell_type, fill=proportion)) +
 scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  theme(legend.position = "None")
+  theme(legend.position = "None") +
+  ggtitle("rRNA- Chunk")
 
 dissociated_ribo <- make_proportion_heatmap(melted_real_results, "dissociated_ribo")
 sB <- ggplot(dissociated_ribo, aes(x=method, y=cell_type, fill=proportion)) +
@@ -185,7 +186,8 @@ sB <- ggplot(dissociated_ribo, aes(x=method, y=cell_type, fill=proportion)) +
   scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  theme(legend.position = "None")
+  theme(legend.position = "None") +
+  ggtitle("rRNA- Dissociated")
 
 dissociated_polyA <- make_proportion_heatmap(melted_real_results, "dissociated_polyA")
 sC <- ggplot(dissociated_polyA, aes(x=method, y=cell_type, fill=proportion)) +
@@ -193,7 +195,8 @@ sC <- ggplot(dissociated_polyA, aes(x=method, y=cell_type, fill=proportion)) +
   scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  theme(legend.position = "None")
+  theme(legend.position = "None") +
+  ggtitle("polyA+ Dissociated")
 
 pdf(paste(figure_path, "suppfig5.pdf", sep = "/"), width = 24, height = 12, family = "sans")
 sA + sB + sC +
