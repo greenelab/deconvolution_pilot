@@ -137,7 +137,7 @@ pE <- ggplot(mcpcounter, mapping = aes(x = log2FoldChange, y = -log10(padj), col
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   labs(color = "Cell type")
 
-pdf(paste(figure_path, "figure5.pdf", sep = "/"), width = 20, height = 12, family = "sans")
+pdf(paste(figure_path, "figure5.pdf", sep = "/"), width = 24, height = 10.67, family = "sans")
 top <- pA + pB + plot_layout(ncol = 2, width = c(5, 2))
 bottom <- pC + pD + pE + plot_layout(ncol = 3, width = c(3, 3, 2))
 top / bottom + plot_annotation(tag_levels = "A")
@@ -173,7 +173,7 @@ make_proportion_heatmap <- function(melted_results, bt) {
 # Make heatmap of proportion differences for each bulk type separately
 chunk_ribo <- make_proportion_heatmap(melted_real_results, "chunk_ribo")
 sA <- ggplot(chunk_ribo, aes(x=method, y=cell_type, fill=proportion)) +
-  geom_raster() + geom_text(aes(label = proportion), size = 6) +
+  geom_raster() + geom_text(aes(label = proportion), size = 6, na.rm = FALSE) +
 scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
@@ -181,7 +181,7 @@ scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value =
 
 dissociated_ribo <- make_proportion_heatmap(melted_real_results, "dissociated_ribo")
 sB <- ggplot(dissociated_ribo, aes(x=method, y=cell_type, fill=proportion)) +
-  geom_raster() + geom_text(aes(label = proportion), size = 6) +
+  geom_raster() + geom_text(aes(label = proportion), size = 6, na.rm = FALSE) +
   scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
@@ -189,7 +189,7 @@ sB <- ggplot(dissociated_ribo, aes(x=method, y=cell_type, fill=proportion)) +
 
 dissociated_polyA <- make_proportion_heatmap(melted_real_results, "dissociated_polyA")
 sC <- ggplot(dissociated_polyA, aes(x=method, y=cell_type, fill=proportion)) +
-  geom_raster() + geom_text(aes(label = proportion), size = 6) +
+  geom_raster() + geom_text(aes(label = proportion), size = 6, na.rm = FALSE) +
   scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
