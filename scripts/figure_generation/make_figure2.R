@@ -403,6 +403,21 @@ get_genotype_heatmaps <- function(sample_id, type1, type2) {
   data1 <- subset(data1, data1$cell %in% sce$Barcode)
   data2 <- subset(data2, data2$cell %in% sce$Barcode)
 
+  data1$donor_id <- recode(data1$donor_id,
+			    "donor0" = "Donor0",
+			    "donor1" = "Donor1",
+			    "donor2" = "Donor2",
+			    "donor3" = "Donor3",
+			    "unassigned" = "Unassigned",
+			    "doublet" = "Doublet")
+  data2$donor_id <- recode(data2$donor_id,
+			    "donor0" = "Donor0",
+			    "donor1" = "Donor1",
+			    "donor2" = "Donor2",
+			    "donor3" = "Donor3",
+			    "unassigned" = "Unassigned",
+			    "doublet" = "Doublet")
+
   setnames(data1, "donor_id", type1)
   setnames(data2, "donor_id", type2)
 
@@ -449,7 +464,7 @@ sA <- ggplot(confusion1, aes(x = chunk_ribo, y = dissociated_ribo, fill = cells)
   heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") +
+  xlab("rRNA- Chunk genotypes") + ylab("rRNA- Dissociated genotypes") +
   ggtitle("Batch A") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
@@ -460,7 +475,7 @@ sB <- ggplot(confusion2, aes(x = chunk_ribo, y = dissociated_ribo, fill = cells)
   heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("chunk_ribo genotypes") + ylab("dissociated_ribo genotypes") +
+  xlab("rRNA- Chunk genotypes") + ylab("rRNA- Dissociated genotypes") +
   ggtitle("Batch B") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
@@ -471,7 +486,7 @@ sC <- ggplot(confusion3, aes(x = dissociated_ribo, y = dissociated_polyA, fill =
   heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") +
+  xlab("rRNA- Dissociated genotypes") + ylab("polyA+ Dissociated genotypes") +
   ggtitle("Batch A") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
@@ -482,7 +497,7 @@ sD <- ggplot(confusion4, aes(x = dissociated_ribo, y = dissociated_polyA, fill =
   heatmap_scale_1d +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
-  xlab("dissociated_ribo genotypes") + ylab("dissociated_polyA genotypes") +
+  xlab("rRNA- Dissociated genotypes") + ylab("polyA+ Dissociated genotypes") +
   ggtitle("Batch B") +
   theme(legend.position = "None",
         plot.title = element_text(hjust = 0.5))
