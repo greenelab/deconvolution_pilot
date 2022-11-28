@@ -21,4 +21,5 @@ We've sequenced 8 high-grade serous ovarian tumors from the Penn Ovarian Cancer 
 - polyA+ Dissociated (Bulk RNA-seq on dissociated cells, poly-A capture)
 
 The raw data (FASTQ files) is available at dbGaP: https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002262.v2.p2 (note: the dbGaP submission process is still underway. In the meantime refer to https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002262.v1.p1 for metadata formats.)
+
 The processed data (gene count matrices) is available at GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE217517
