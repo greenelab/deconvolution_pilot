@@ -34,4 +34,5 @@ conda activate cancer_deconvolution
 ```
 
 Once inside the conda environment, you'll need to install cellranger from the 10X website: https://support.10xgenomics.com/single-cell-gene-expression/software/downloads/latest
+
 To run CIBERSORTx, you'll need to obtain a license here: https://cibersortx.stanford.edu/download.php
