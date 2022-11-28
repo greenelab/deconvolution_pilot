@@ -123,7 +123,7 @@ Note that running all of the existing methods on bulk and pseudo-bulk data will 
 
 ## Evaluate deconvolution output
 
-You can visualize the robustness and accuracy of the new deconvolution results using the files in `scripts/evaluation`. All functions for loading in data and results are stored in `scripts/evaluation/evaluation_functions.R`; note that these functions may need to be lightly modified to accomodate a new user's file system.
+You can visualize the robustness and accuracy of the new deconvolution results using the files in `scripts/evaluation`. All functions for loading in data and results are stored in `scripts/evaluation/evaluation_functions.R`; note that these functions may need to be lightly modified to accomodate a new user's file system. For the scripts listed below, be sure to add the name of your method to the `proportions` variable at the top of the script.
 
 `scripts/evaluation/get_pseudobulk_accuracy.R` returns the difference between deconvolution estimates for the pseudo-bulk sample and the true pseudo-bulk proportions, stratified by method and cell type: 
 ![pseudobulk_accuracy_by_cell_type](https://user-images.githubusercontent.com/14189222/204381205-c8846d7d-a881-4826-9f72-454ee59c9584.png)
@@ -138,4 +138,4 @@ You can visualize the robustness and accuracy of the new deconvolution results u
 
 ![accuracy_vs_robustness_real_correlation](https://user-images.githubusercontent.com/14189222/204381624-fe76b09a-3dc5-44b5-9fde-f77bf338c5fb.png)
 
-Most of our evaluations are designed around methods that return cell type proportions for each tissue sample (e.g. "Tissue A is made up of 15% fibroblasts"). If your method returns a sample-by-sample cell type score, accuracy can be evaluated using `scripts/evaluation/get_score_correlation.R`. Be sure to add in the name of your method to the list in the `scores` variable.
+Most of our evaluations are designed around methods that return cell type proportions for each tissue sample (e.g. "Tissue A is made up of 15% fibroblasts"). If your method returns a sample-by-sample cell type score, accuracy can be evaluated using `scripts/evaluation/get_score_correlation.R`. For this script, you will need to add in the name of your method to the list in the `scores` variable instead of in the `proportions` variable.
