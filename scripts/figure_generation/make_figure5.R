@@ -172,33 +172,36 @@ make_proportion_heatmap <- function(melted_results, bt) {
 
 # Make heatmap of proportion differences for each bulk type separately
 chunk_ribo <- make_proportion_heatmap(melted_real_results, "chunk_ribo")
-sA <- ggplot(chunk_ribo, aes(x=method, y=cell_type, fill=proportion)) +
+sA <- ggplot(chunk_ribo, aes(y=method, x=cell_type, fill=proportion)) +
   geom_raster() + geom_text(aes(label = proportion), size = 6, na.rm = FALSE) +
 scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None") +
+  xlab("(Estimated bulk proportion - single cell proportion)") + ylab("Method") + 
   ggtitle("rRNA- Chunk")
 
 dissociated_ribo <- make_proportion_heatmap(melted_real_results, "dissociated_ribo")
-sB <- ggplot(dissociated_ribo, aes(x=method, y=cell_type, fill=proportion)) +
+sB <- ggplot(dissociated_ribo, aes(y=method, x=cell_type, fill=proportion)) +
   geom_raster() + geom_text(aes(label = proportion), size = 6, na.rm = FALSE) +
   scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None") +
+  xlab("(Estimated bulk proportion - single cell proportion)") + ylab("Method") + 
   ggtitle("rRNA- Dissociated")
 
 dissociated_polyA <- make_proportion_heatmap(melted_real_results, "dissociated_polyA")
-sC <- ggplot(dissociated_polyA, aes(x=method, y=cell_type, fill=proportion)) +
+sC <- ggplot(dissociated_polyA, aes(y=method, x=cell_type, fill=proportion)) +
   geom_raster() + geom_text(aes(label = proportion), size = 6, na.rm = FALSE) +
   scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None") +
+  xlab("(Estimated bulk proportion - single cell proportion)") + ylab("Method") + 
   ggtitle("polyA+ Dissociated")
 
-pdf(paste(figure_path, "suppfig5.pdf", sep = "/"), width = 24, height = 12, family = "sans")
-sA + sB + sC +
+pdf(paste(figure_path, "suppfig5.pdf", sep = "/"), width = 12, height = 18, family = "sans")
+sA / sB / sC +
   plot_annotation(tag_levels = "A")
 dev.off()
