@@ -20,7 +20,7 @@ We've sequenced 8 high-grade serous ovarian tumors from the Penn Ovarian Cancer 
 - rRNA- Dissociated (Bulk RNA-seq on dissociated cells, rRNA depletion)
 - polyA+ Dissociated (Bulk RNA-seq on dissociated cells, poly-A capture)
 
-<img src="https://github.com/arielah/deconvolution_pilot/blob/readme_update/figures/figure1.pdf">
+![figure1](https://user-images.githubusercontent.com/14189222/204383085-a68437e1-33b6-42e2-a4e6-09da99040a7d.png)
 
 The raw data (FASTQ files) is available at dbGaP: https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002262.v2.p2 (note: the dbGaP submission process is still underway. In the meantime refer to https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002262.v1.p1 for metadata formats.)
 
@@ -38,3 +38,7 @@ conda activate cancer_deconvolution
 Once inside the conda environment, you'll need to install cellranger from the 10X website: https://support.10xgenomics.com/single-cell-gene-expression/software/downloads/latest
 
 To run CIBERSORTx, you'll need to obtain a license here: https://cibersortx.stanford.edu/download.php
+
+## Adding a new method
+
+Refer to [vignette_for_new_methods.md](https://github.com/greenelab/deconvolution_pilot/blob/main/vignette_for_new_methods.md) for step-by-step information on running a new deconvolution method through our pipeline and doing a comparative analysis.
