@@ -23,3 +23,16 @@ We've sequenced 8 high-grade serous ovarian tumors from the Penn Ovarian Cancer 
 The raw data (FASTQ files) is available at dbGaP: https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002262.v2.p2 (note: the dbGaP submission process is still underway. In the meantime refer to https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002262.v1.p1 for metadata formats.)
 
 The processed data (gene count matrices) is available at GEO: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE217517
+
+## Environment
+
+All processing and analysis scripts were performed using the conda environment specified in environment.yml. To build and activate this environment run:
+
+```
+conda env create --file environment.yml
+conda activate cancer_deconvolution
+```
+
+Once inside the conda environment, you'll need to install cellranger from the 10X website: https://support.10xgenomics.com/single-cell-gene-expression/software/downloads/latest
+
+To run CIBERSORTx, you'll need to obtain a license here: https://cibersortx.stanford.edu/download.php
