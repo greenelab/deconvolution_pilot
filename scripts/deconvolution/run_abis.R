@@ -18,13 +18,15 @@ samples <- params$samples
 
 # Load salmon results with TPM values
 bulkfile <- paste(local_data_path, "/deconvolution_input/normalized_data_", bulk_type, ".tsv", sep = "")
-bulk_matrix <- fread(bulkfile)
-genes <- bulk_matrix$V1; bulk_matrix$V1 <- NULL
+bulk_matrix <- fread(bulkfile, header = TRUE)
+genes <- bulk_matrix$Gene; bulk_matrix$Gene <- NULL
 bulk_matrix <- as.matrix(bulk_matrix)
 rownames(bulk_matrix) <- genes
 
 # Run abis
 res <- deconvolute(bulk_matrix, "abis")
+
+print(res)
 
 # The abis authors say that small negative values (>-5%) are
 # expected as a result of noise and can be set to 0
@@ -45,6 +47,11 @@ labels <- fread(paste(local_data_path,"deconvolution_input",
 setnames(labels, "Original", "cell_type")
 res <- inner_join(labels, res)
 
+# Keep it granular
+res[res$cell_type=="T cell CD8+ memory" |
+    res$cell_type=="T cell CD8+ naive", ]$Simplified <- "CD8 T cells"
+res[res$cell_type=="T cell CD4+ memory" |
+    res$cell_type=="T cell CD4+ naive", ]$Simplified <- "CD4 T cells"
 
 fractions <- setdiff(colnames(res), c("cell_type","Simplified"))
 res <- res %>% group_by(Simplified) %>% summarize_at(vars(fractions), sum)
