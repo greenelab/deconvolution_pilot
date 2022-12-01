@@ -11,7 +11,7 @@ If your method takes raw read counts as input, you can download the gene count m
 ### With normalized reads
 If your method requires length-normalized counts (ie transcripts per million) or if you want to compare all methods, you'll need to request to download the FastQ files from dbGaP: https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs002262.v2.p2.
 
-You will also need to download the reference files needed to run salmon. We used Gencode version 32 as a reference transcriptome (download [here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/gencode.v32.transcripts.fa.gz)) and the referene genome from 10X (download [here](https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2020-A.tar.gz)).
+You will also need to download the reference files needed to run salmon. We used Gencode version 32 as a reference transcriptome (download [here](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/gencode.v32.transcripts.fa.gz)) and the reference genome from 10X (download [here](https://cf.10xgenomics.com/supp/cell-exp/refdata-gex-GRCh38-2020-A.tar.gz)).
 
 ## Edit Snakefile and config parameters
 
@@ -44,7 +44,7 @@ More information on how to run a snakemake pipeline is [here](https://snakemake.
 Snakemake can be a one line bash command, but for deconvolution we recommend writing a short python or R script and using snakemake to call it.
 
 Key components for integration with the snakemake pipeline:
-- The data files can be loaded in however you see fit, but we recommend using the files made by the snakemake helper functions and stored in `dir_inputs` for compatability with other methods. 
+- The data files can be loaded in however you see fit, but we recommend using the files made by the snakemake helper functions and stored in `dir_inputs` for compatibility with other methods. 
 - Be sure to specify the type of bulk data being deconvolved. In R, this can be passed directly from snakemake with the line `bulk_type <- snakemake@wildcards[['bulk_type']]`.
 - The script can write any number of output files, but one of them should be titled `yourmethodname_results.tsv` with the same spelling and capitalization as in the snakemake METHODS parameter. This should be a sample by cell type matrix with the estimated cell type proportions or scores.
 
@@ -57,7 +57,7 @@ library(SingleCellExperiment)
 library(yourMethod)
 library(yaml)
 
-# Set paramters
+# Set parameters
 bulk_type <- snakemake@wildcards[['bulk_type']]
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
@@ -66,7 +66,7 @@ samples <- params$samples
 
 # Load bulk data
 bulkfile <- paste(local_data_path, "/deconvolution_input/normalized_data_", bulk_type, ".tsv", sep = "")
-bulk_matrix <- fread(bulkfile)
+eulk_matrix <- fread(bulkfile)
 
 # Load single cell data
 scefile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/")
