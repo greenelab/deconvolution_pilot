@@ -2,7 +2,10 @@
 title: "analysis_polyA_vs_pseudo"
 author: "Ariel Hippen"
 date: '2022-07-31'
-output: html_document
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 
 ```{r setup, include=FALSE}
@@ -29,7 +32,7 @@ samples <- params$samples
 
 ```{r}
 # Load the DESeq2 object with the original count matrix
-deseq_path <- paste(local_data_path, "deseq2_results", sep = "/")
+deseq_path <- paste(local_data_path, "deseq2_output", sep = "/")
 dds <- readRDS(paste(deseq_path, "polyA_vs_pseudo_data.rds", sep = "/"))
 
 # Load the DESeqResults object with differentially expressed genes, at FDR 0.1 and 0.05

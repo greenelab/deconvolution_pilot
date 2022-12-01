@@ -2,12 +2,10 @@
 title: "GSEA Ribo vs polyA"
 author: "Ariel Hippen"
 date: '2022-07-28'
-output: 
-  html_document:
-    toc: true
-    toc_depth: 4
-    toc_float:
-      collapsed: false
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 
 ```{r setup, include=FALSE}
@@ -78,6 +76,32 @@ library(EnhancedVolcano)
 
 EnhancedVolcano(res1, lab = rownames(res1), x = 'log2FoldChange', y = 'pvalue')
 ```
+
+## Plot counts
+
+```{r}
+gene <- "MT-ND5"
+d <- plotCounts(dds, gene=gene, intgroup=c("condition","sample"), returnData=TRUE)
+ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
+  geom_point() + scale_y_log10() + geom_line()
+```
+
+Let's try with all mito genes
+```{r}
+mt_genes <- grep("MT-", rownames(dds), value = T)
+mito_expr <- as.data.frame(colSums(assay(dds[mt_genes,])))
+colnames(mito_expr) <- "counts"
+mito_expr$id <- colData(dds)$id
+```
+
+Let's also try with all histone genes
+```{r}
+hist_genes <- grep("HIST", rownames(dds), value = T)
+hist_expr <- as.data.frame(colSums(assay(dds[hist_genes,])))
+colnames(hist_expr) <- "counts"
+hist_expr$id <- colData(dds)$id
+```
+
 
 ## GSEA
 
