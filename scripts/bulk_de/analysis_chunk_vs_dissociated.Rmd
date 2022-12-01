@@ -2,12 +2,10 @@
 title: "GSEA Chunk vs dissociated"
 author: "Ariel Hippen"
 date: '2022-07-28'
-output: 
-  html_document:
-    toc: true
-    toc_depth: 4
-    toc_float:
-      collapsed: false
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 
 ```{r setup, include=FALSE}
