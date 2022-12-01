@@ -123,7 +123,7 @@ dds <- readRDS(paste(deseq_path, "polyA_vs_pseudo_data.rds", sep = "/"))
 
 res <- as.data.frame(results(dds))
 res$gene <- rownames(res)
-setnames(mcpcounter, "HUGO symbols", "gene")
+setnames(mcpcounter, "ENSEMBL ID", "gene")
 setnames(mcpcounter, "Cell population", "cell_type")
 
 mcpcounter <- inner_join(mcpcounter, res)
@@ -137,10 +137,11 @@ pE <- ggplot(mcpcounter, mapping = aes(x = log2FoldChange, y = -log10(padj), col
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   labs(color = "Cell type")
 
-pdf(paste(figure_path, "figure5.pdf", sep = "/"), width = 24, height = 10.67, family = "sans")
-top <- pA + pB + plot_layout(ncol = 2, width = c(5, 2))
-bottom <- pC + pD + pE + plot_layout(ncol = 3, width = c(3, 3, 2))
-top / bottom + plot_annotation(tag_levels = "A")
+pdf(paste(figure_path, "figure5.pdf", sep = "/"), width = 16, height = 16, family = "sans")
+top <- pA
+middle <- pB + pC + plot_layout(ncol = 2, widths = c(2, 4))
+bottom <- pD + pE + plot_layout(ncol = 2, widths = c(4, 2))
+top / middle / bottom + plot_annotation(tag_levels = "A")
 dev.off()
 
 
