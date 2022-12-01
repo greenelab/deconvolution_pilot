@@ -16,7 +16,7 @@ samples <- params$samples
 
 # Load salmon results with TPM values
 bulkfile <- paste(local_data_path, "/deconvolution_input/normalized_data_", bulk_type, ".tsv", sep = "")
-bulk_matrix <- fread(bulkfile)
+bulk_matrix <- fread(bulkfile, header = TRUE)
 genes <- bulk_matrix$Gene; bulk_matrix$Gene <- NULL
 bulk_matrix <- as.matrix(bulk_matrix)
 rownames(bulk_matrix) <- genes
@@ -29,6 +29,10 @@ labels <- fread(paste(local_data_path,"deconvolution_input",
                       "simplified_labels.tsv", sep = "/"))
 setnames(labels, "Original", "cell_type")
 res <- inner_join(labels, res)
+
+# Keep granular
+res[res$cell_type=="T cell CD4+ (non-regulatory)", ]$Simplified <- "CD4 T cells"
+res[res$cell_type=="T cell CD8+", ]$Simplified <- "CD8 T cells"
 
 fractions <- setdiff(colnames(res), c("cell_type","Simplified"))
 res <- res %>% group_by(Simplified) %>% summarize_at(vars(fractions), sum)

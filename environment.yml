@@ -1,0 +1,27 @@
+name: cancer_deconvolution
+
+channels:
+- conda-forge
+- bioconda
+dependencies:
+  - conda-forge::r-base=4.2.0
+  - bioconda::star=2.7.10
+  - bioconda::salmon=1.9.0
+  - bioconda::bcftools=1.7
+  - bioconda::cellsnp-lite=1.2.2
+  - bioconda::celltypist=1.1.0
+  - bioconda::bioconductor-scran=1.24.1
+  - conda-forge::r-igraph=1.3.5
+  - bioconda::bioconductor-deseq2=1.36.0
+  - bioconda::bioconductor-simbu=1.0.0
+  - bioconda::snakemake=7.12.0
+  - bioconda::r-immunedeconv=2.1.0
+  - bioconda::bioconductor-scater=1.24.0
+  - bioconda::bioconductor-miqc=1.5.4
+  - bioconda::r-bisquerna=1.0.5
+  - pip:
+    - vireoSNP=0.5.7
+    - git+https://github.com/Danko-Lab/BayesPrism.git
+    - git+https://github.com/GfellerLab/EPIC.git
+    - git+https://github.com/xuranw/MuSiC.git
+    - git+https://github.com/lydiaMyr/ImmuCellAI.git
