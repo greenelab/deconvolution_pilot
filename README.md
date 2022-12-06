@@ -42,3 +42,14 @@ To run CIBERSORTx, you'll need to obtain a license here: https://cibersortx.stan
 ## Adding a new method
 
 Refer to [vignette_for_new_methods.md](https://github.com/greenelab/deconvolution_pilot/blob/main/vignette_for_new_methods.md) for step-by-step information on running a new deconvolution method through our pipeline and doing a comparative analysis.
+
+## Citation
+
+If you use this content, please cite:
+
+```
+Ariel A. Hippen, Dalia K. Omran, Lukas M. Weber, Euihye Jung, Ronny Drapkin, Jennifer A. Doherty, Stephanie C. Hicks, and Casey S. Greene. Performance of
+computational algorithms to deconvolve heterogeneous bulk tumor tissue depends on experimental factors. bioRxiv, December 2022. 
+```
+
+View our preprint here: https://www.biorxiv.org/content/10.1101/2022.12.04.519045v1
