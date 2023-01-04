@@ -2,7 +2,10 @@
 title: "Compare reference genotypes for vireo"
 author: "Ariel Hippen"
 date: '2022-06-27'
-output: html_document
+output: 
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 
 ```{r setup, include = FALSE}

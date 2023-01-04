@@ -9,15 +9,20 @@ suppressPackageStartupMessages({
   library(SingleCellExperiment)
   library(DropletUtils)
   library(scater)
+  library(yaml)
 })
 
-source("../../config.R")
+params <- read_yaml("../../config.yml")
+data_path <- params$data_path
+local_data_path <- params$local_data_path
+samples <- params$samples
+
 
 # Make matrix of pseudobulk with only the miQC-preserved cells
 # Note: variable samples is loaded from config.R
 filtered_pseudobulk <- matrix(nrow = 36601, ncol = length(samples))
 for(i in 1:length(samples)){
-  sce <- readRDS(paste("../sce_objects/", samples[i], ".rds", sep=""))
+  sce <- readRDS(paste(local_data_path, "/sce_objects/", samples[i], ".rds", sep=""))
   counts <- as.matrix(assay(sce))
   sums <- rowSums(counts)
   filtered_pseudobulk[, i] <- sums
@@ -26,7 +31,7 @@ rownames(filtered_pseudobulk) <- names(sums)
 colnames(filtered_pseudobulk) <- samples
 rm(i, sce, counts, sums); gc()
 
-pseudobulk_path <- paste(local_data_path, "pseudobulk_objects", sep = "/")
+pseudobulk_path <- paste(local_data_path, "sce_objects", sep = "/")
 saveRDS(filtered_pseudobulk, file = paste(pseudobulk_path, "filtered_pseudobulk.rds", sep = "/"))
 
 # Make matrix of pseudobulk with all cells
