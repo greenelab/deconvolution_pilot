@@ -9,14 +9,15 @@ suppressPackageStartupMessages({
   library(data.table)
   library(SingleCellExperiment)
   library(dplyr)
+  library(SimBu)
   library(yaml)
 })
 
 # There's a bug in the SimBu code which causes mislabeled cell types in one
 # use case. I submitted it as an issue on their github and they said they'll
 # fix it soon, but in the meantime I copied the code and made the change myself.
-source("../SimBu/R/dataset.R")
-source("../SimBu/R/simulator.R")
+#source("../SimBu/R/dataset.R")
+#source("../SimBu/R/simulator.R")
 
 sim_type <- snakemake@wildcards[['pseudobulktype']]
 params <- read_yaml("../../config.yml")
