@@ -98,7 +98,44 @@ sce_hash <- sce_hash[, sce$unique_barcode %in% assigned]
 
 # Save object
 outfile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile_default.rds", sep = "/")
-saveRDS(sce_hash, file = outfile)
+#saveRDS(sce_hash, file = outfile)
+
+
+## Stress test of extreme downsampling of cells for reference profile
+
+# Calculate proportion
+table(sce$cellType)
+
+proportions <- table(sce$cellType)/length(sce$cellType)
+print(proportions)
+
+cell_counts <- c(2000, 1000, 500, 200)
+
+for (i in cell_counts) {
+	proportions_sim <- round(proportions * i)
+	proportions_sim[proportions_sim < 1] <- 1
+
+	print(proportions_sim)
+
+	# loop over all wanted cell-types and sample to have the final amount
+	sampled_cells <- lapply(seq_along(proportions_sim), function(x) { 
+					# get all cells with the current type
+		cells_of_type_x <- data.frame(colData(sce)[colData(sce)[["cellType"]] == names(proportions_sim[x]), ])
+		if (proportions_sim[x] == 0) {
+			cells <- c()
+		} else {
+			# how many cells of this type do we need?
+			cells <- dplyr::slice_sample(cells_of_type_x, n = proportions_sim[x], replace = FALSE)
+			cells <- cells[["Barcode"]]
+		}
+		return(cells)
+	})
+	sce_sampled <- sce[, sce$Barcode %in% unlist(sampled_cells)]
+
+	outfile <- paste(local_data_path, "/deconvolution_input/labeled_single_cell_profile_sim", i, ".rds", sep = "")
+	saveRDS(sce_sampled, file = outfile)
+}
+
 
 # Save text version of object for scanpy (leaving in for if I add more methods)
 #rownames(sce) <- rowData(sce)$ID
