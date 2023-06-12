@@ -9,15 +9,13 @@ suppressPackageStartupMessages({
   library(data.table)
   library(SingleCellExperiment)
   library(dplyr)
-  library(SimBu)
   library(yaml)
 })
 
-# There's a bug in the SimBu code which causes mislabeled cell types in one
-# use case. I submitted it as an issue on their github and they said they'll
-# fix it soon, but in the meantime I copied the code and made the change myself.
-#source("../SimBu/R/dataset.R")
-#source("../SimBu/R/simulator.R")
+# I tweaked the SimBu code to also calculate and output an estimate of cell type
+# proportions based on percent of RNA, as well as percent of total cells.
+source("../SimBu/R/dataset.R")
+source("../SimBu/R/simulator.R")
 
 sim_type <- snakemake@wildcards[['pseudobulktype']]
 params <- read_yaml("../../config.yml")
@@ -64,6 +62,9 @@ sim_se <- matrix()
 
 # Create sample by cell type df with true fractions
 sim_fractions <- data.frame()
+
+# Create sample by cell type df with RNA fractions
+sim_rna_fractions <- data.frame()
 
 set.seed(1019)
 for(i in 1:length(samples)) {
@@ -120,11 +121,13 @@ for(i in 1:length(samples)) {
   }
   sim_se <- reformat_se(sim_se, sample_sim$bulk, i)
   sim_fractions <- reformat_fractions(sim_fractions, sample_sim$cell_fractions, i)
+  sim_rna_fractions <- reformat_fractions(sim_rna_fractions, sample_sim$rna_fractions, i)
 }
 rownames(sim_fractions) <- colnames(sim_se)
+rownames(sim_rna_fractions) <- colnames(sim_se)
 
 # Write raw count and cpm normalized data to files
-make_files <- function(data, fractions, sim_type) {
+make_files <- function(data, fractions, rna_fractions, sim_type) {
   sample_names <- colnames(data)
   cpm_data <- data*1000000/colSums(data)[col(data)]
   rownames(cpm_data) <- rowData(sce)$Symbol
@@ -143,6 +146,9 @@ make_files <- function(data, fractions, sim_type) {
   
   fractionfile <- paste(local_data_path, "/deconvolution_input/cell_type_fractions_", sim_type, ".tsv", sep = "")
   write.table(fractions, fractionfile, quote = F, sep = "\t")
+  
+  rna_fractionfile <- paste(local_data_path, "/deconvolution_input/cell_type_rna_fractions_", sim_type, ".tsv", sep = "")
+  write.table(rna_fractions, rna_fractionfile, quote = F, sep = "\t")
 }
 
-make_files(sim_se, sim_fractions, sim_type)
+make_files(sim_se, sim_fractions, sim_rna_fractions, sim_type)
