@@ -123,7 +123,7 @@ dds <- readRDS(paste(deseq_path, "polyA_vs_pseudo_data.rds", sep = "/"))
 
 res <- as.data.frame(results(dds))
 res$gene <- rownames(res)
-setnames(mcpcounter, "HUGO symbols", "gene")
+setnames(mcpcounter, "ENSEMBL ID", "gene")
 setnames(mcpcounter, "Cell population", "cell_type")
 
 mcpcounter <- inner_join(mcpcounter, res)
@@ -137,10 +137,11 @@ pE <- ggplot(mcpcounter, mapping = aes(x = log2FoldChange, y = -log10(padj), col
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) +
   labs(color = "Cell type")
 
-pdf(paste(figure_path, "figure5.pdf", sep = "/"), width = 24, height = 10.67, family = "sans")
-top <- pA + pB + plot_layout(ncol = 2, width = c(5, 2))
-bottom <- pC + pD + pE + plot_layout(ncol = 3, width = c(3, 3, 2))
-top / bottom + plot_annotation(tag_levels = "A")
+pdf(paste(figure_path, "figure5.pdf", sep = "/"), width = 16, height = 16, family = "sans")
+top <- pA
+middle <- pB + pC + plot_layout(ncol = 2, widths = c(2, 4))
+bottom <- pD + pE + plot_layout(ncol = 2, widths = c(4, 2))
+top / middle / bottom + plot_annotation(tag_levels = "A")
 dev.off()
 
 
@@ -172,33 +173,36 @@ make_proportion_heatmap <- function(melted_results, bt) {
 
 # Make heatmap of proportion differences for each bulk type separately
 chunk_ribo <- make_proportion_heatmap(melted_real_results, "chunk_ribo")
-sA <- ggplot(chunk_ribo, aes(x=method, y=cell_type, fill=proportion)) +
+sA <- ggplot(chunk_ribo, aes(y=method, x=cell_type, fill=proportion)) +
   geom_raster() + geom_text(aes(label = proportion), size = 6, na.rm = FALSE) +
 scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None") +
+  xlab("(Estimated bulk proportion - single cell proportion)") + ylab("Method") + 
   ggtitle("rRNA- Chunk")
 
 dissociated_ribo <- make_proportion_heatmap(melted_real_results, "dissociated_ribo")
-sB <- ggplot(dissociated_ribo, aes(x=method, y=cell_type, fill=proportion)) +
+sB <- ggplot(dissociated_ribo, aes(y=method, x=cell_type, fill=proportion)) +
   geom_raster() + geom_text(aes(label = proportion), size = 6, na.rm = FALSE) +
   scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None") +
+  xlab("(Estimated bulk proportion - single cell proportion)") + ylab("Method") + 
   ggtitle("rRNA- Dissociated")
 
 dissociated_polyA <- make_proportion_heatmap(melted_real_results, "dissociated_polyA")
-sC <- ggplot(dissociated_polyA, aes(x=method, y=cell_type, fill=proportion)) +
+sC <- ggplot(dissociated_polyA, aes(y=method, x=cell_type, fill=proportion)) +
   geom_raster() + geom_text(aes(label = proportion), size = 6, na.rm = FALSE) +
   scale_fill_gradientn(colors = heatmap_scale_2d, limits = c(-0.7,0.7), na.value = "#DDDDDD") +
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_discrete(expand = c(0, 0)) +
   theme(legend.position = "None") +
+  xlab("(Estimated bulk proportion - single cell proportion)") + ylab("Method") + 
   ggtitle("polyA+ Dissociated")
 
-pdf(paste(figure_path, "suppfig5.pdf", sep = "/"), width = 24, height = 12, family = "sans")
-sA + sB + sC +
+pdf(paste(figure_path, "suppfig5.pdf", sep = "/"), width = 12, height = 18, family = "sans")
+sA / sB / sC +
   plot_annotation(tag_levels = "A")
 dev.off()

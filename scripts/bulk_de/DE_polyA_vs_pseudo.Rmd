@@ -2,12 +2,10 @@
 title: "DE_polyA_vs_pseudo"
 author: "Ariel Hippen"
 date: '2022-07-31'
-output: 
-  html_document:
-    toc: true
-    toc_depth: 4
-    toc_float:
-      collapsed: false
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 
 ```{r setup, include=FALSE}
@@ -133,11 +131,12 @@ cqnNormFactors <- cqnNormFactors / exp(rowMeans(log(cqnNormFactors)))
 This counts matrix has the genes listed by their Ensembl IDs, which is helpful for uniqueness but bad for readability in the downstream analysis. The easiest way I've found to convert ensembl IDs to gene names for this dataset is by loading in a SingleCellExperiment object from the same experiment, where this mapping is automatically stored.
 
 ```{r}
-#sce <- readRDS(paste(sce_path, "pooled_clustered_50.rds", sep = "/"))
-#gene_map <- as.data.frame(subset(rowData(sce), select=c("ID","Symbol")))
-#gene_map <- gene_map[rownames(counts)==gene_map$ID,]
-#rownames(counts) <- gene_map$Symbol
-#rm(sce); gc()
+sce <- readRDS(paste(sce_path, "pooled_clustered.rds", sep = "/"))
+gene_map <- as.data.frame(subset(rowData(sce), select=c("ID","Symbol")))
+gene_map <- gene_map[order(gene_map$ID),]
+gene_map <- subset(gene_map, gene_map$ID %in% rownames(counts))
+rownames(counts) <- gene_map$Symbol
+rm(sce); gc()
 ```
 
 
@@ -284,7 +283,7 @@ Okay, PCs 2-5 seem to be roughly based on sample, but the overwhelming distincti
 ## Checking gene length and GC content
 
 ```{r}
-resLFC$ensembl_gene_id <- rownames(resLFC)
+resLFC$hgnc_symbol <- rownames(resLFC)
 res_df <- as.data.frame(resLFC)
 res_df <- left_join(res_df, gene_coords)
 

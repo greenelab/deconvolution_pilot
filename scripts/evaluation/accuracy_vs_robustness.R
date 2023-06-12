@@ -102,7 +102,7 @@ total <- full_join(robustness, coors)
 total <- full_join(total, completeness)
 
 plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_vs_robustness_pseudobulk_correlation.png", sep = "")
-png(plotfile, width = 1200)
+png(plotfile, width = 700)
 ggplot(total, mapping = aes(x = average_var, y = cor, color = method, shape = immune_only)) +
   geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
   geom_label_repel(aes(label = method, size = NULL)) +
@@ -116,7 +116,7 @@ total <- full_join(robustness, sum_sqs)
 total <- full_join(total, completeness)
 
 plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_vs_robustness_pseudobulk_RMSE.png", sep = "")
-png(plotfile, width = 1200)
+png(plotfile, width = 700)
 ggplot(total, mapping = aes(x = average_var, y = rmse, color = method, shape = immune_only)) +
   geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
   geom_label_repel(aes(label = method, size = NULL)) +
@@ -130,7 +130,7 @@ total <- full_join(robustness, real_coors)
 total <- full_join(total, completeness)
 
 plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_vs_robustness_real_correlation.png", sep = "")
-png(plotfile, width = 1200)
+png(plotfile, width = 700)
 ggplot(total, mapping = aes(x = average_var, y = real_cor, color = method, shape = immune_only)) +
   geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
   geom_label_repel(aes(label = method, size = NULL)) +
@@ -144,7 +144,7 @@ total <- full_join(robustness, real_sum_sqs)
 total <- full_join(total, completeness)
 
 plotfile <- paste(plot_path, "/deconvolution_plots/accuracy_vs_robustness_real_RMSE.png", sep = "")
-png(plotfile, width = 1200)
+png(plotfile, width = 700)
 ggplot(total, mapping = aes(x = average_var, y = real_rmse, color = method, shape = immune_only)) +
   geom_point(aes(size = 10)) + theme(text = element_text(size = 14)) +
   geom_label_repel(aes(label = method, size = NULL)) +

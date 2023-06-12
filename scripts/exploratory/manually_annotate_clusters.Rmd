@@ -2,7 +2,10 @@
 title: "Manual Annotation of Pooled Cells"
 author: "Ariel Hippen"
 date: '2022-06-14'
-output: html_document
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 
 ```{r setup, include=FALSE}
@@ -92,6 +95,7 @@ plotUMAP(sce, colour_by = "ACTA2")
 ## Cluster cells
 
 Creating the SNN graph takes >1hr, so I will leave the code in to generate the clusters but after the first time just load in the existing RDS object. Also, I initially ran this several times with k=30, 50, and 80, but decided to go with the resolution at 50.
+
 ```{r}
 #g <- buildSNNGraph(sce,
 #                   k = 50,   # higher = bigger clusters

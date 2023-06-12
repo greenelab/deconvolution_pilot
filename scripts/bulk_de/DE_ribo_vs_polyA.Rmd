@@ -2,13 +2,10 @@
 title: "Differential expression: rRNA depletion vs poly-A capture"
 author: "Ariel Hippen"
 date: '2022-07-28'
-output: 
-  html_document:
-    toc: true
-    toc_depth: 4
-    toc_float:
-      collapsed: false
-
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 
 ```{r setup, include = FALSE}
@@ -89,7 +86,7 @@ This counts matrix has the genes listed by their Ensembl IDs, which is helpful f
 
 ```{r}
 sce_path <- paste(local_data_path, "sce_objects", sep = "/")
-sce <- readRDS(paste(sce_path, "pooled_clustered_50.rds", sep = "/"))
+sce <- readRDS(paste(sce_path, "pooled_clustered.rds", sep = "/"))
 gene_map <- as.data.frame(subset(rowData(sce), select = c("ID", "Symbol")))
 gene_map <- gene_map[rownames(counts) == gene_map$ID, ]
 rownames(counts) <- gene_map$Symbol

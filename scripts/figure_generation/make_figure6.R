@@ -188,13 +188,12 @@ pF <- ggplot(total, mapping = aes(x = average_var, y = real_cor, color = method)
   guides(color = "none", size = "none") +
   scale_color_manual(name = "Method", values = colors_methods)
 
-pdf(paste(figure_path, "figure6.pdf", sep = "/"), width = 24, height = 10.67, family = "sans")
-top <- pA + pB + pC + plot_layout(ncol = 3, widths = c(5, 5, 3))
-bottom <- pD + pE + plot_spacer() + pF + plot_layout(ncol = 4, widths = c(5, 3, 1, 3))
-top / bottom + plot_annotation(tag_levels = "A")
+pdf(paste(figure_path, "figure6.pdf", sep = "/"), width = 16, height = 16, family = "sans")
+top <- pA + pB
+middle <- pC + pD + plot_layout(ncol = 2, width = c(2, 4))
+bottom <- pE + plot_spacer() + pF + plot_layout(ncol = 3, widths = c(3, 1, 3))
+top / middle / bottom + plot_annotation(tag_levels = "A")
 dev.off()
-
-
 
 
 
