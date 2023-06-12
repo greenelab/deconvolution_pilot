@@ -1,6 +1,8 @@
 # One of the paper's reviewers raised a good question: if deconvolution results
 # can change based on the size of the reference profile, how big does the
-# reference need to be to return good results?
+# reference need to be to return good results? So we created several simulated
+# reference profiles by proportionally downsampling our single-cell data, down
+# to as small as 200 cells. This work eventually became Supplemental Figure 6.
 
 suppressPackageStartupMessages({
   library(data.table)
@@ -77,6 +79,7 @@ ggplot(subset(deconvolution, reference=="sim200")) + geom_boxplot(mapping = aes(
   scale_fill_manual(name = "Method", values = colors_methods) +
   ylab("Estimated proportion - single cell proportion") +
   theme(axis.title.x = element_blank()) + ggtitle("sim200")
+
 
 # A quick wrapper function to plot side-by-side pie charts of the different cell
 # type estimates for any two reference profiles for a single sample, bulk type,
