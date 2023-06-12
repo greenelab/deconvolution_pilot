@@ -78,12 +78,20 @@ res_df[rownames(res_df) %in% endo_genes,]$group <- "Endothelial cells"
 #macro_genes <- subset(emont_genes, emont_genes$cluster=="macrophage" & emont_genes$avg_log2FC>1)$gene
 #res_df[rownames(res_df) %in% macro_genes,]$group <- "Macrophages"
 
+# Get dissociation stress genes from OFlanagan et al 2019
+# https://github.com/kieranrcampbell/scrnaseq-digestion-paper/blob/master/data/deliverables/coregene_df-FALSE-v3.csv
+stress_genes <- fread(paste(local_data_path, "miscellaneous", "oflanagan_genes.tsv", sep = "/"))
+stress_genes <- stress_genes$gene_symbol
+res_df[rownames(res_df) %in% stress_genes & res_df$group=="Other",]$group <- "Dissociation response"
+
 
 # Rearrange so interesting genes are plotted on top
-res_df$group <- factor(res_df$group, levels = c("Other", "Endothelial cells", "Adipocytes", "RBCs"))
+res_df$group <- factor(res_df$group, levels = c("Other", "Endothelial cells", "Adipocytes",
+                                                "Dissociation response", "RBCs"))
 res_df <- res_df[order(res_df$group), ]
 
 # Make volcano plot
+#res_df$Gene <- rownames(res_df)
 pB <- ggplot(res_df, mapping = aes(x = log2FoldChange,
                                    y = -log10(padj),
                                    color = group)) +
@@ -92,8 +100,12 @@ pB <- ggplot(res_df, mapping = aes(x = log2FoldChange,
   geom_hline(yintercept = -log10(0.05), linetype = "dashed") +
   geom_vline(xintercept = c(log2(0.5), log2(2)), linetype = "dashed") +
   scale_color_manual(name = "Gene set", values = colors_genesets, 
-                     limits = c("Adipocytes", "RBCs", "Endothelial cells", "Other")) +
-  xlab("log2 fold change") + ylab("-log10 adjusted p-value")
+                     limits = c("Adipocytes", "RBCs", "Endothelial cells",
+                                "Dissociation response", "Other")) +
+  xlab("log2 fold change") + ylab("-log10 adjusted p-value") +
+  annotate("text", x= -3.4, y= 34, label = "rRNA- Chunk", size = 6) +
+  annotate("text", x= 3.7, y= 34, label="rRNA- Dissociated", size = 6)
+
 
 # Plot hemoglobin genes
 hemo_genes <- c("HBA1","HBA2","HBB")
@@ -109,10 +121,9 @@ pC <- ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
     geom_point() + scale_y_log10() + geom_line() +
     facet_wrap(~Gene) +
     theme(axis.text.x = element_text(angle=0, hjust = 0.5, vjust = 0.5)) +
-    labs(x = "Status", y = "Read counts", color = "Sample") +
+    labs(x = "Status", y = "Normalized read counts", color = "Sample") +
     scale_color_manual(values = colors_samples) +
     annotation_logticks(sides = "l")
-
   
 # Plot adipocyte genes
 selected_adipo_genes <- c("ADIPOQ", "CIDEC", "PLIN1")
@@ -128,7 +139,7 @@ pD <- ggplot(d, aes(x=condition, y=count, group=sample, color=sample)) +
     geom_point() + scale_y_log10() + geom_line() +
     facet_wrap(~Gene) +
     theme(axis.text.x = element_text(angle=0, hjust = 0.5, vjust = 0.5)) +
-  labs(x = "Status", y = "Read counts", color = "Sample") +
+  labs(x = "Status", y = "Normalized read counts", color = "Sample") +
     scale_color_manual(values = colors_samples) +
     annotation_logticks(sides = "l")
   

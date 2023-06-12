@@ -84,7 +84,9 @@ pB <- ggplot(res_df, mapping = aes(x = log2FoldChange,
   geom_vline(xintercept = c(log2(0.5), log2(2)), linetype = "dashed") +
   scale_color_manual(name = "Gene set", values = colors_genesets,
                      limits = c("Histones", "Other polyA(-)", "MT Genes", "Other")) +
-  xlab("log2 fold change") + ylab("-log10 adjusted p-value")
+  xlab("log2 fold change") + ylab("-log10 adjusted p-value") +
+    annotate("text", x= -4.7, y= 275, label = "rRNA- Dissociated", size = 6) +
+    annotate("text", x= 4.2, y= 275, label="polyA+ Dissociated", size = 6) #+
 
 # Get sums of all histone genes
 hist_expr <- as.data.frame(colSums(assay(dds[hist_genes,])))
@@ -99,7 +101,7 @@ pC <- ggplot(hist_expr, aes(x=condition, y=counts, group=sample, color=sample)) 
   geom_line() +
   theme(axis.text.x = element_text(angle=0, hjust = 0.5, vjust = 0.5),
         plot.title = element_text(hjust = 0.5)) +
-  labs(x = "Status", y = "Read counts", color = "Sample") +
+  labs(x = "Status", y = "Normalized read counts", color = "Sample") +
   ggtitle("Histone genes") +
   scale_color_manual(values = colors_samples) +
   annotation_logticks(sides = "l")
@@ -118,7 +120,7 @@ pD <- ggplot(mito_expr, aes(x=condition, y=counts, group=sample, color=sample)) 
   geom_line() +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
         plot.title = element_text(hjust = 0.5)) +
-  labs(x = "Status", y = "Read counts", color = "Sample") +
+  labs(x = "Status", y = "Normalized read counts", color = "Sample") +
   ggtitle("Mitochondrial genes") +
   scale_color_manual(values = colors_samples) +
   annotation_logticks(sides = "l")
