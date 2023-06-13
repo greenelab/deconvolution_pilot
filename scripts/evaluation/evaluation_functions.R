@@ -17,7 +17,7 @@ load_melted_sc <- function(granular = FALSE){
         sample <- samples[i]
         # Single cell sequencing more or less failed for this sample, with only 300
         # cells total, so we can't make reliable proportions estimates for it.
-        if(sample=="2428"){
+        if(sample == "2428"){
             next
         }
         sc_file <- paste(local_data_path, "/sce_objects/", sample,
@@ -38,6 +38,33 @@ load_melted_sc <- function(granular = FALSE){
     melted_sc
 }
 
+load_melted_sc_rna <- function(granular = FALSE){
+  melted_sc <- data.frame()
+  for(i in 1:length(samples)){
+    sample <- samples[i]
+    # Single cell sequencing more or less failed for this sample, with only 300
+    # cells total, so we can't make reliable proportions estimates for it.
+    if(sample == "2428"){
+      next
+    }
+    sc_file <- paste(local_data_path, "/sce_objects/", sample,
+                     "_labeled.rds", sep = "")
+    sce <- readRDS(sc_file)
+    if (granular){
+      x <- data.frame(colData(sce)) %>% group_by(cellTypeGranular) %>% summarize(counts = sum(total))
+    } else{
+      x <- data.frame(colData(sce)) %>% group_by(cellType) %>% summarize(counts = sum(total))
+    }
+    x$counts <- x$counts / sum(x$counts)
+    setnames(x, "cellType", "cell_type")
+    setnames(x, "counts", "proportion.sc")
+    x$sample <- sample
+    
+    melted_sc <- rbind(melted_sc, x)
+  }
+  
+  melted_sc
+}
 
 # Load in pseudobulk "true fractions" (as provided by SimBu) into a dataframe
 load_pseudobulk_fractions <- function(pseudobulk_types){
@@ -59,29 +86,59 @@ load_pseudobulk_fractions <- function(pseudobulk_types){
   melted_fractions
 }
 
+# Load in pseudobulk "true fractions" (as provided by SimBu) into a dataframe
+load_pseudobulk_fractions_rna <- function(pseudobulk_types){
+  melted_fractions <- data.frame()
+  for(i in 1:length(pseudobulk_types)){
+    pseudo_type <- pseudobulk_types[i]
+    fractfile <- paste(local_data_path, "/deconvolution_input/",
+                       "cell_type_rna_fractions_", pseudo_type, ".tsv", sep = "")
+    fraction <- fread(fractfile)
+    setnames(fraction, "V1", "sample")
+    y <- melt(fraction)
+    y$bulk_type <- pseudo_type
+    
+    melted_fractions <- rbind(melted_fractions, y)
+  }
+  setnames(melted_fractions, "value", "proportion")
+  setnames(melted_fractions, "variable", "cell_type")
+  
+  melted_fractions
+}
+
+
 
 # Load all deconvolution results into a single dataframe, with one
 # row for each combination of cell type x method x bulk type x sample
-load_melted_results <- function(demultiplex_default = FALSE){
+load_melted_results <- function(reference_comp = FALSE){
     # Get the file locations of all deconvolution results
     output <- paste(local_data_path, "deconvolution_output", sep = "/")
     files <- list.files(output, full.names = T, recursive = T)
     files <- grep(".tsv", files, value = TRUE)
-    if (!demultiplex_default) {
-      files <- files[-grep("demultiplex_default", files)]
+    if (!reference_comp) {
+      files <- files[-grep("reference", files)]
     }
 
     melted_results <- data.frame()
     for(i in 1:length(files)){
         resultfile <- files[i]
-        method <- strsplit(resultfile, split="/")
+        method <- strsplit(resultfile, split = "/")
         bulk_type <- sapply(method, "[[", length(method[[1]])-1)
+        if (length(grep("reference", bulk_type))>0){
+          tmp <- strsplit(bulk_type, split = "_reference_")
+          bulk_type <- tmp[[1]][1]
+          reference <- tmp[[1]][2]
+        } else{
+          reference <- "genetic"
+        }
         method <- sapply(method, "[[", length(method[[1]]))
         method <- gsub("_results.tsv", "",  method)
-        results_tmp <- fread(resultfile, header=T)
+        results_tmp <- fread(resultfile, header = T)
         
         results <- melt(results_tmp,id.vars = "cell_type")
+        results$variable <- as.character(results$variable)
         results$bulk_type <- bulk_type
+        results$reference <- reference
         results$method <- method
         
         melted_results <- rbind(melted_results, results)

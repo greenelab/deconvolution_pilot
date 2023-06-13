@@ -6,17 +6,17 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
-demultiplex_setting <- snakemake@wildcards[["demultiplex_setting"]]
+reference_setting <- snakemake@wildcards[["reference_setting"]]
 bulk_type <- snakemake@wildcards[["bulk_type"]]
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
 samples <- params$samples
 
-if (is.null(demultiplex_setting)) {
+if (is.null(reference_setting)) {
   outdir <- paste(local_data_path, "deconvolution_output", bulk_type, sep = "/")
 } else {
-  outdir <- paste(local_data_path, "/deconvolution_output/", bulk_type, "_demultiplex_default", sep = "")
+  outdir <- paste(local_data_path, "/deconvolution_output/", bulk_type, "_reference_", reference_setting, sep = "")
 }
 
 infile <- paste(outdir, "CIBERSORTx_Results.txt", sep = "/")

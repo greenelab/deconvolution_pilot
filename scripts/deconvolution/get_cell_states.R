@@ -13,17 +13,17 @@ suppressPackageStartupMessages({
   library(yaml)
 })
 
-demultiplex_setting <- snakemake@wildcards[["demultiplex_setting"]]
+reference_setting <- snakemake@wildcards[["reference_setting"]]
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
 samples <- params$samples
 
 # Load single cell data
-if (is.null(demultiplex_setting)){
+if (is.null(reference_setting)){
   infile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/")
 } else{
-  infile <- paste(local_data_path, "/deconvolution_input/", "labeled_single_cell_profile_", demultiplex_setting, ".rds", sep = "")
+  infile <- paste(local_data_path, "/deconvolution_input/", "labeled_single_cell_profile_", reference_setting, ".rds", sep = "")
 }
 sce <- readRDS(infile)
 sce$unique_barcode <- paste(sce$Pool, sce$Barcode, sep = "-")
@@ -36,7 +36,7 @@ sce$cellState <- ct$majority_voting
 table(sce$cellType)
 table(sce$cellState)
 
-# Load in cell labels from genetic demultiplexing
+# Load in cell labels from genetic referenceing
 labels_dec <- fread(paste(data_path,"pooled_tumors/12162021/vireo/donor_ids.tsv", sep = "/"))
 labels_dec$unique_barcode <- paste("12162021", labels_dec$cell, sep="-")
 labels_jan <- fread(paste(data_path,"pooled_tumors/01132022/vireo/donor_ids.tsv", sep = "/"))
@@ -58,9 +58,9 @@ sce$donor_id <- labels$donor_id
 sce$cellState <- ifelse(sce$cellType == "Epithelial cells", sce$donor_id, sce$cellState)
 
 # Save object
-if (is.null(demultiplex_setting)){
+if (is.null(reference_setting)){
   outfile <- paste(local_data_path, "deconvolution_input", "labeled_cell_state_profile.rds", sep = "/")
 } else {
-  outfile <- paste(local_data_path, "/deconvolution_input/", "labeled_cell_state_profile_", demultiplex_setting, ".rds", sep = "")
+  outfile <- paste(local_data_path, "/deconvolution_input/", "labeled_cell_state_profile_", reference_setting, ".rds", sep = "")
 }
 saveRDS(sce, outfile)

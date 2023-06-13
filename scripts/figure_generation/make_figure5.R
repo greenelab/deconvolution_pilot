@@ -29,17 +29,19 @@ scores <- c("consensus_tme", "immucellai", "mcpcounter", "timer", "xcell")
 
 # Plot true proportions for pseudobulk samples
 pseudobulk_types <- c("realistic", "even", "weighted", "sparse")
-melted_fractions <- load_pseudobulk_fractions(pseudobulk_types)
+melted_fractions <- load_pseudobulk_fractions_rna(pseudobulk_types)
 
 # Filter down to one sample for easier visualization
 demo_fractions <- melted_fractions[grep("2380", melted_fractions$sample),]
 
-pA <-ggplot(demo_fractions, mapping = aes(x=sample, y=proportion, fill=cell_type)) +
+pA <-ggplot(demo_fractions, mapping = aes(x=sample, y=proportion, fill=cell_type,
+                                          color=cell_type)) +
   geom_bar(stat = "identity") +
   #theme(legend.position = "bottom") +
   facet_wrap("~bulk_type", ncol = 4) +
   scale_fill_manual(values = colors_celltypes) +
   labs(fill = "Cell type") +
+  guides(color = "none") +
   xlab("Simulated sample") + ylab("Proportion") +
   theme(axis.text.x=element_blank(), #remove x axis labels
         axis.ticks.x=element_blank()) #remove x axis ticks
@@ -66,33 +68,33 @@ setnames(melted_fractions, "proportion", "true_proportion")
 melted_pseudo_results <- left_join(melted_pseudo_results, melted_fractions)
 melted_pseudo_results[is.na(melted_pseudo_results$true_proportion),]$true_proportion <- 0
 
-# Plot correlations
-correlations <- melted_pseudo_results %>%
-  group_by(method, bulk_type) %>%
-  summarize(cor = cor(proportion, true_proportion))
-pB <- ggplot(correlations, mapping = aes(x=bulk_type, y=cor, group=method, color=method)) +
+# Plot RMSE
+melted_pseudo_results$prop_diff <- melted_pseudo_results$proportion - melted_pseudo_results$true_proportion
+melted_pseudo_results$prop_diff_sq <- melted_pseudo_results$prop_diff ^ 2
+sum_sqs <- melted_pseudo_results %>% group_by(method, bulk_type) %>% summarize(rmse = sqrt(mean(prop_diff_sq)))
+
+pB <- ggplot(sum_sqs, mapping = aes(x=bulk_type, y=rmse, group=method, color=method)) +
   geom_point() + geom_line() +
   scale_color_manual(name = "Method", values = colors_methods) +
   xlab("Pseudo-bulk simulation type") +
-  ylab("Correlation with true pseudo-bulk proportions") +
+  ylab("RMSE with pseudo-bulk proportions") +
   theme(axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5))
 
 # Subtract true proportions from deconvolution estimates
-melted_pseudo_results$proportion <- melted_pseudo_results$proportion - melted_pseudo_results$true_proportion
-melted_pseudo_results$true_proportion <- NULL
+#melted_pseudo_results$proportion <- melted_pseudo_results$proportion - melted_pseudo_results$true_proportion
+#melted_pseudo_results$true_proportion <- NULL
 
 # Plot accuracy by cell type
-pC <- ggplot(melted_pseudo_results) + geom_boxplot(mapping = aes(x = cell_type, y= proportion, fill = method, color = method)) +
-  geom_boxplot(mapping = aes(x = cell_type, y = proportion, fill = method), outlier.colour = NA) +
+pC <- ggplot(melted_pseudo_results) + geom_boxplot(mapping = aes(x = cell_type, y= prop_diff, fill = method, color = method)) +
+  geom_boxplot(mapping = aes(x = cell_type, y = prop_diff, fill = method), outlier.colour = NA) +
   scale_color_manual(name = "Method", values = colors_methods) +
   scale_fill_manual(name = "Method", values = colors_methods) +
-  ylab("Estimated proportion - true proportion") + xlab("Cell type")
-
-
+  ylab("Estimated - pseudo-bulk proportion") +
+  theme(axis.title.x = element_blank())
 
 
 # Load in labeled single cells, melted into a single data frame
-melted_sc <- load_melted_sc()
+melted_sc <- load_melted_sc_rna()
 
 # Filter down to cell types we have single-cell data for
 melted_real_results <- subset(melted_real_results, melted_real_results$cell_type %in% melted_sc$cell_type)
@@ -110,8 +112,8 @@ pD <- ggplot(melted_real_results) + geom_boxplot(mapping = aes(x = cell_type, y=
   geom_boxplot(mapping = aes(x = cell_type, y = proportion, fill = method), outlier.colour = NA) +
   scale_color_manual(name = "Method", values = colors_methods) +
   scale_fill_manual(name = "Method", values = colors_methods) +
-  ylab("Estimated proportion - single cell proportion") + xlab("Cell type")
-
+  ylab("Estimated proportion - single cell proportion") +
+  theme(axis.title.x = element_blank())
 
 
 # Load MCPcounter genes
@@ -123,7 +125,7 @@ dds <- readRDS(paste(deseq_path, "polyA_vs_pseudo_data.rds", sep = "/"))
 
 res <- as.data.frame(results(dds))
 res$gene <- rownames(res)
-setnames(mcpcounter, "ENSEMBL ID", "gene")
+setnames(mcpcounter, "HUGO symbols", "gene")
 setnames(mcpcounter, "Cell population", "cell_type")
 
 mcpcounter <- inner_join(mcpcounter, res)
@@ -139,10 +141,14 @@ pE <- ggplot(mcpcounter, mapping = aes(x = log2FoldChange, y = -log10(padj), col
 
 pdf(paste(figure_path, "figure5.pdf", sep = "/"), width = 16, height = 16, family = "sans")
 top <- pA
-middle <- pB + pC + plot_layout(ncol = 2, widths = c(2, 4))
-bottom <- pD + pE + plot_layout(ncol = 2, widths = c(4, 2))
+middle <- (pB + theme(axis.title.x = element_text(margin = margin(t = -70, unit = "pt")))) + pC + plot_layout(ncol = 2, widths = c(2, 4))
+bottom <- pD + (pE + theme(axis.title.x = element_text(margin = margin(t = -70, unit = "pt")))) + plot_layout(ncol = 2, widths = c(4, 2))
 top / middle / bottom + plot_annotation(tag_levels = "A")
 dev.off()
+
+
+
+
 
 
 make_proportion_heatmap <- function(melted_results, bt) {
@@ -168,8 +174,6 @@ make_proportion_heatmap <- function(melted_results, bt) {
  
   remelt
 }
-
-
 
 # Make heatmap of proportion differences for each bulk type separately
 chunk_ribo <- make_proportion_heatmap(melted_real_results, "chunk_ribo")

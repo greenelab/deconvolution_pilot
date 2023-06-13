@@ -9,7 +9,7 @@ suppressPackageStartupMessages({
 })
 
 bulk_type <- snakemake@wildcards[['bulk_type']]
-demultiplex_setting <- snakemake@wildcards[["demultiplex_setting"]]
+reference_setting <- snakemake@wildcards[["reference_setting"]]
 params <- read_yaml("../../config.yml")
 data_path <- params$data_path
 local_data_path <- params$local_data_path
@@ -26,12 +26,12 @@ bulk_matrix <- t(bulk_matrix)
 colnames(bulk_matrix) <- genes
 
 # Get appropriate single cell info and associated output directory
-if (is.null(demultiplex_setting)) {
-  scefile <- paste(local_data_path, "deconvolution_input", "labeled_cell_state_profile.rds", sep = "/")
+if (is.null(reference_setting)) {
+  scefile <- paste(local_data_path, "deconvolution_input", "labeled_single_cell_profile.rds", sep = "/")
   outdir <- paste(local_data_path, "deconvolution_output", bulk_type, sep = "/")
 } else {
-  scefile <- paste(local_data_path, "/deconvolution_input/", "labeled_cell_state_profile_", demultiplex_setting, ".rds", sep = "")
-  outdir <- paste(local_data_path, "/deconvolution_output/", bulk_type, "_demultiplex_default", sep = "")
+  scefile <- paste(local_data_path, "/deconvolution_input/", "labeled_single_cell_profile_", reference_setting, ".rds", sep = "")
+  outdir <- paste(local_data_path, "/deconvolution_output/", bulk_type, "_reference_", reference_setting, sep = "")
 }
 
 # Get single cell counts matrix
