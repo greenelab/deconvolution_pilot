@@ -2,7 +2,9 @@
 # make the biggest different on deconvolution results. I had never done an ANOVA
 # quite like this one before, particularly given that the various cell type
 # estimates are not independent (have a sum-to-one constraint). This script was
-# playing around with possible models to workshop what might be appropriate.
+# playing around with possible models to workshop what might be appropriate. We
+# added a section to the results in the paper discussing the results from the
+# chosen model.
 
 suppressPackageStartupMessages({
   library(data.table)
@@ -23,11 +25,12 @@ source("../evaluation/evaluation_functions.R")
 pseudobulk_types <- c("realistic", "even", "weighted", "sparse")
 proportions <- c("bayesprism", "bisque", "cibersortx", "epic", "music", "nnls")
 
-
+# Load real data; we're excluding pseudo-bulk data because cell type proportions
+# are very affected by simulation scenario, which isn't relevant to experimental
+# design.
 melted_results <- load_melted_results(reference_comp = T)
 melted_results <- subset(melted_results, !bulk_type %in% pseudobulk_types)
 melted_results <- subset(melted_results, method %in% proportions)
-#melted_results <- subset(melted_results, reference %in% c("hashing","genetic"))
 
 # Splitting out bulk type into dissociation status and mRNA enrichment
 melted_results$dissociation_status <- ifelse(melted_results$bulk_type=="chunk_ribo", "no", "yes")

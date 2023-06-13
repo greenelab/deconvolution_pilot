@@ -30,34 +30,39 @@ melted_results <- subset(melted_results, melted_results$method %in% single_cell_
 # Calculate the variance of each cell type x method combo, adding in results
 # from a smaller reference profile each time
 original_results <- subset(melted_results, melted_results$reference %in% c("genetic", "hashing"))
-variance2 <- original_results %>% group_by(method, cell_type, variable, bulk_type) %>%
+variance2 <- original_results %>% 
+  group_by(method, cell_type, variable, bulk_type) %>%
   summarize(variance = var(proportion))
 ggplot(variance2, mapping = aes(x = method, y = log(variance), fill = cell_type)) +
   geom_boxplot() + ggtitle("Just hashing and genetic") + ylim(-50, -3)
 variance2 %>% group_by(method) %>% summarize(means = mean(variance)) %>% arrange(means)
 
 reasonable_results <- subset(melted_results, melted_results$reference %in% c("genetic", "hashing","sim2000"))
-variance3 <- reasonable_results %>% group_by(method, cell_type, variable, bulk_type) %>%
+variance3 <- reasonable_results %>% 
+  group_by(method, cell_type, variable, bulk_type) %>%
   summarize(variance = var(proportion))
 ggplot(variance3, mapping = aes(x = method, y = log(variance), fill = cell_type)) +
   geom_boxplot() + ggtitle("Just >2000 refs") + ylim(-50, -3)
 variance3 %>% group_by(method) %>% summarize(means = mean(variance)) %>% arrange(means)
 
 reasonable_results <- subset(melted_results, melted_results$reference %in% c("genetic", "hashing","sim2000","sim1000"))
-variance4 <- reasonable_results %>% group_by(method, cell_type, variable, bulk_type) %>%
+variance4 <- reasonable_results %>%
+  group_by(method, cell_type, variable, bulk_type) %>%
   summarize(variance = var(proportion))
 ggplot(variance4, mapping = aes(x = method, y = log(variance), fill = cell_type)) +
   geom_boxplot() + ggtitle("Just >1000 refs") + ylim(-50, -3)
 variance4 %>% group_by(method) %>% summarize(means = mean(variance)) %>% arrange(means)
 
 reasonable_results <- subset(melted_results, melted_results$reference %in% c("genetic", "hashing","sim2000","sim1000","sim500"))
-variance5 <- reasonable_results %>% group_by(method, cell_type, variable, bulk_type) %>%
+variance5 <- reasonable_results %>% 
+  group_by(method, cell_type, variable, bulk_type) %>%
   summarize(variance = var(proportion))
 ggplot(variance5, mapping = aes(x = method, y = log(variance), fill = cell_type)) +
   geom_boxplot() + ggtitle("Just >500 refs") + ylim(-50, -3)
 variance5 %>% group_by(method) %>% summarize(means = mean(variance))%>% arrange(means)
 
-variance <- melted_results %>% group_by(method, cell_type, variable, bulk_type) %>%
+variance <- melted_results %>% 
+  group_by(method, cell_type, variable, bulk_type) %>%
   summarize(variance = var(proportion))
 ggplot(variance, mapping = aes(x = method, y = log(variance), fill = cell_type)) +
   geom_boxplot() + ggtitle("All simulations") + ylim(-50, -3)

@@ -17,7 +17,7 @@ load_melted_sc <- function(granular = FALSE){
         sample <- samples[i]
         # Single cell sequencing more or less failed for this sample, with only 300
         # cells total, so we can't make reliable proportions estimates for it.
-        if(sample=="2428"){
+        if(sample == "2428"){
             next
         }
         sc_file <- paste(local_data_path, "/sce_objects/", sample,
@@ -44,7 +44,7 @@ load_melted_sc_rna <- function(granular = FALSE){
     sample <- samples[i]
     # Single cell sequencing more or less failed for this sample, with only 300
     # cells total, so we can't make reliable proportions estimates for it.
-    if(sample=="2428"){
+    if(sample == "2428"){
       next
     }
     sc_file <- paste(local_data_path, "/sce_objects/", sample,
@@ -122,7 +122,7 @@ load_melted_results <- function(reference_comp = FALSE){
     melted_results <- data.frame()
     for(i in 1:length(files)){
         resultfile <- files[i]
-        method <- strsplit(resultfile, split="/")
+        method <- strsplit(resultfile, split = "/")
         bulk_type <- sapply(method, "[[", length(method[[1]])-1)
         if (length(grep("reference", bulk_type))>0){
           tmp <- strsplit(bulk_type, split = "_reference_")
@@ -133,7 +133,7 @@ load_melted_results <- function(reference_comp = FALSE){
         }
         method <- sapply(method, "[[", length(method[[1]]))
         method <- gsub("_results.tsv", "",  method)
-        results_tmp <- fread(resultfile, header=T)
+        results_tmp <- fread(resultfile, header = T)
         
         results <- melt(results_tmp,id.vars = "cell_type")
         results$variable <- as.character(results$variable)
